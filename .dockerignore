@@ -8,6 +8,7 @@ docs/node_modules/
 
 # Editor
 .qwen/
+.qwenignore
 .vscode/
 .idea/
 
@@ -27,3 +28,4 @@ next exemple/
 # Misc
 *.md
 LICENSE
+

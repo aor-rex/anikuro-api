@@ -10,9 +10,13 @@ export default defineConfig({
     starlight({
       title: "Anikuro API",
       description: "Anikuro API Documentation",
-      social: {
-        github: "https://github.com/aor-rex/anikuro-api",
-      },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/aor-rex/anikuro-api",
+        },
+      ],
       customCss: ["/src/assets/style.css"],
       sidebar: [
         {
