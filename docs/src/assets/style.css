@@ -1,31 +1,150 @@
-@import url('https://fonts.googleapis.com/css?family=Verdana');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap");
 
-/* Dark mode colors. */
 :root {
-	--sl-color-accent-low: #391818;
-	--sl-color-accent: #b2393e;
-	--sl-color-accent-high: #e9bcb9;
-	--sl-color-white: #ffffff;
-	--sl-color-gray-1: #ebeef3;
-	--sl-color-gray-2: #bfc2c8;
-	--sl-color-gray-3: #858c97;
-	--sl-color-gray-4: #535863;
-	--sl-color-gray-5: #333842;
-	--sl-color-gray-6: #222730;
-	--sl-color-black: #16181c;
+  --sl-color-accent-low: #2a0000;
+  --sl-color-accent: #cc0000;
+  --sl-color-accent-high: #ff3333;
+  --sl-color-white: #f0f0f0;
+  --sl-color-gray-1: #e0e0e0;
+  --sl-color-gray-2: #b0b0b0;
+  --sl-color-gray-3: #808080;
+  --sl-color-gray-4: #555555;
+  --sl-color-gray-5: #3a3a3a;
+  --sl-color-gray-6: #2a2a2a;
+  --sl-color-black: #0a0a0a;
 }
-/* Light mode colors. */
-:root[data-theme='light'] {
-	--sl-color-accent-low: #f0cdcb;
-	--sl-color-accent: #b53b40;
-	--sl-color-accent-high: #531f1f;
-	--sl-color-white: #16181c;
-	--sl-color-gray-1: #222730;
-	--sl-color-gray-2: #333842;
-	--sl-color-gray-3: #535863;
-	--sl-color-gray-4: #858c97;
-	--sl-color-gray-5: #bfc2c8;
-	--sl-color-gray-6: #ebeef3;
-	--sl-color-gray-7: #f5f6f9;
-	--sl-color-black: #ffffff;
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #ffe0e0;
+  --sl-color-accent: #cc0000;
+  --sl-color-accent-high: #600000;
+  --sl-color-white: #0a0a0a;
+  --sl-color-gray-1: #1a1a1a;
+  --sl-color-gray-2: #2a2a2a;
+  --sl-color-gray-3: #555555;
+  --sl-color-gray-4: #808080;
+  --sl-color-gray-5: #b0b0b0;
+  --sl-color-gray-6: #e0e0e0;
+  --sl-color-gray-7: #f0f0f0;
+  --sl-color-black: #ffffff;
+}
+
+/* Global font */
+body {
+  font-family: "Noto Sans JP", sans-serif;
+}
+
+/* Header / nav */
+.header {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%);
+  border-bottom: 2px solid var(--sl-color-accent);
+}
+
+/* Sidebar */
+.sidebar-pane {
+  background: var(--sl-color-black);
+}
+
+.sidebar-pane .top-header {
+  color: var(--sl-color-accent-high);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+/* Red accent on sidebar links */
+.sidebar-pane .sidebar-content a:hover,
+.sidebar-pane .sidebar-content a.active {
+  color: var(--sl-color-accent-high);
+  background: linear-gradient(90deg, transparent, rgba(204, 0, 0, 0.1));
+}
+
+.sidebar-pane .sidebar-content a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--sl-color-accent);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.sidebar-pane .sidebar-content a:hover::before,
+.sidebar-pane .sidebar-content a.active::before {
+  transform: scaleY(1);
+}
+
+/* Headings with red accent */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--sl-color-white);
+}
+
+h1 {
+  background: linear-gradient(
+    90deg,
+    var(--sl-color-accent-high),
+    var(--sl-color-white)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Code blocks */
+.expressive-code {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
+  background: var(--sl-color-gray-6) !important;
+}
+
+/* Buttons / CTAs */
+a[role="button"][data-variant="primary"] {
+  background: linear-gradient(135deg, #cc0000, #990000) !important;
+  border-color: #cc0000 !important;
+  font-weight: 700;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+a[role="button"][data-variant="primary"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(204, 0, 0, 0.4);
+}
+
+/* Card hover */
+.starlight-asides .sl-badge {
+  border-color: var(--sl-color-accent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sl-color-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sl-color-accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sl-color-accent-high);
+}
+
+/* Hero section */
+.hero {
+  background: linear-gradient(
+    180deg,
+    rgba(204, 0, 0, 0.05) 0%,
+    transparent 100%
+  );
 }
