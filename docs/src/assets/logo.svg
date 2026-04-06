@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a78bfa"/>
+      <stop offset="0.5" stop-color="#ec4899"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- Manga panel shape -->
+  <rect x="3" y="3" width="30" height="30" rx="4" fill="url(#g)" opacity="0.15"/>
+  <rect x="3" y="3" width="30" height="30" rx="4" stroke="url(#g)" stroke-width="2" fill="none"/>
+  <!-- Speed lines -->
+  <line x1="8" y1="12" x2="16" y2="12" stroke="url(#g)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="8" y1="16" x2="14" y2="16" stroke="url(#g)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="8" y1="20" x2="18" y2="20" stroke="url(#g)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Sparkle -->
+  <path d="M24 10 L26 18 L34 18 L28 23 L30 31 L24 26 L18 31 L20 23 L14 18 L22 18Z" fill="url(#g)" opacity="0.8"/>
+</svg>

@@ -1,14 +1,16 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
-// https://astro.build/config
 export default defineConfig({
   site: "https://aor-rex-anikuro-api.hf.space",
   output: "static",
   integrations: [
     starlight({
-      title: "Anikuro API",
-      description: "Anikuro API Documentation",
+      title: "anikuro",
+      logo: {
+        src: "./src/assets/logo.svg",
+      },
+      description: "your anime manga api gateway",
       social: [
         {
           icon: "github",
