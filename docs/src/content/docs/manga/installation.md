@@ -38,6 +38,6 @@ once the server is running, open your browser and visit:
 
 - anikuro api server is running on [https://aor-rex-anikuro-api.hf.space](https://aor-rex-anikuro-api.hf.space).
 - try the health check endpoint: [https://aor-rex-anikuro-api.hf.space/health](https://aor-rex-anikuro-api.hf.space/health)
-- browse the documentation: [https://aor-rex-anikuro-api.hf.space/](https://aor-rex-anikuro-api.hf.space/)
+- browse the documentation: [https://aor-rex-anikuro-api.hf.space/docs](https://aor-rex-anikuro-api.hf.space/docs)
 
 feel free to explore the anikuro api to access manga data and enhance your manga-related applications. happy coding!
