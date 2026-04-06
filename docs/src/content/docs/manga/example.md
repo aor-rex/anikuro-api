@@ -29,9 +29,4 @@ anikuro has created a user-friendly website using next.js, tailwind css, and nex
 - users can enter a search query, and the website displays a list of manga titles related to the search term.
 - clicking on a search result takes users to the manga details page.
 
-## example website
-
-- the anikuro website is hosted at [https://aor-rex-anikuro-site.hf.space](https://aor-rex-anikuro-site.hf.space).
-- users can explore the home screen, view manga details, read chapters, and search for their favorite manga titles.
-
 this example demonstrates how anikuro combines the power of next.js, tailwind css, and the anikuro api to create a dynamic and engaging manga reading platform.

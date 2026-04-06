@@ -43,20 +43,15 @@ app.use("/api/manga/list", mangaListRouter); // /api/manga/list
 app.use("/api/manga/search", mangaSearch); // /api/manga/search/:query
 app.use("/api/manga", mangaRouter); // /api/manga/:id, /api/manga/:id/:ch
 
-// Serve built Astro docs at /docs (no API key required)
+// Serve built Astro docs at / (no API key required)
 const docsPath = path.join(__dirname, "..", "docs", "dist");
 app.use(
-  "/docs",
+  "/",
   require("express").static(docsPath, {
     maxAge: "1d",
     index: "index.html",
   }),
 );
-
-// Redirect root to docs
-app.get("/", (req, res) => {
-  res.redirect("/docs/");
-});
 
 // Health check (bypasses API key)
 app.get("/health", (req, res) => {

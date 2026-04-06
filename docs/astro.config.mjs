@@ -4,7 +4,6 @@ import starlight from "@astrojs/starlight";
 // https://astro.build/config
 export default defineConfig({
   site: "https://aor-rex-anikuro-api.hf.space",
-  base: "/docs",
   output: "static",
   integrations: [
     starlight({
@@ -39,7 +38,7 @@ export default defineConfig({
         {
           label: "Guides",
           items: [
-            { label: "API Playground", link: "/playground" },
+            { label: "API Playground", link: "/playground.html" },
             { label: "Examples", link: "/manga/example" },
             { label: "Hooks", link: "/manga/hooks" },
           ],

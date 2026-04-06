@@ -7,30 +7,31 @@ description: unlock detailed insights into specific manga and chapters with the 
 
 the `/api/manga/:id` endpoint provides detailed information about a specific manga. use the manga id obtained from the manga list endpoint to access manga details.
 
+note: the `:id` is the slug from the manga list response (e.g., `attack-on-titan`).
+
 #### example
 
 ```http
-get http://localhost:3000/api/manga/manga-oa952283
+get http://localhost:3000/api/manga/attack-on-titan
 ```
 
 #### response
 
 ```json
 {
-  "imageUrl": "https://www.mangakakalot.gg//mangaimage/manga-oa952283.jpg",
-  "name": "attack on titan",
-  "author": "isayama hajime",
-  "status": "ongoing",
-  "updated": "apr 22,2022 - 19",
-  "view": "105.8M",
-  "genres": ["action", "adventure"],
+  "imageUrl": "https://mangabuddy.com/image/attack-on-titan.jpg",
+  "name": "Attack On Titan",
+  "author": "Isayama Hajime",
+  "status": "Ongoing",
+  "updated": "Apr 22, 2022",
+  "view": "N/A",
+  "genres": ["Action", "Adventure"],
   "chapterList": [
     {
       "id": "chapter-139",
-      "path": "/chapter/manga-oa952283/chapter-139",
-      "name": "vol.34 chapter 139: moving toward that tree on the hill",
+      "name": "Chapter 139: Moving Toward That Tree On The Hill",
       "view": "353.2K",
-      "createdAt": "apr 22,22"
+      "createdAt": "Apr 22,22"
     }
   ]
 }
@@ -45,25 +46,33 @@ the `/api/manga/:id/:ch` endpoint provides details about a specific chapter of a
 #### example
 
 ```http
-get http://localhost:3000/api/manga/manga-oa952283/chapter-136
+get http://localhost:3000/api/manga/attack-on-titan/chapter-139
 ```
 
 #### response
 
 ```json
 {
-  "title": "attack on titan",
-  "currentChapter": "vol.34 chapter 136: offer your hearts",
+  "title": "Attack On Titan",
+  "currentChapter": "Chapter 139: Moving Toward That Tree On The Hill",
   "chapterListIds": [
     {
       "id": "chapter-139",
-      "name": "vol.34 chapter 139: moving toward that tree on the hill"
+      "name": "Chapter 139: Moving Toward That Tree On The Hill"
+    },
+    {
+      "id": "chapter-138",
+      "name": "Chapter 138: A Long Dream"
     }
   ],
   "images": [
     {
-      "title": "attack on titan vol.34 chapter 136: offer your hearts page 1",
-      "image": "https://cm.blazefast.co/7d/9b/7d9b48e08f2f3d39d96ef17ada153901.jpg"
+      "title": "Attack On Titan - Page 1",
+      "image": "https://s1.mangabuddy.com/images/attack-on-titan/ch139/page-1.jpg"
+    },
+    {
+      "title": "Attack On Titan - Page 2",
+      "image": "https://s1.mangabuddy.com/images/attack-on-titan/ch139/page-2.jpg"
     }
   ]
 }
@@ -71,7 +80,7 @@ get http://localhost:3000/api/manga/manga-oa952283/chapter-136
 
 ## notes
 
-- the `:id` parameter in the endpoint represents the unique identifier for a specific manga, and `:ch` represents the unique identifier for a specific chapter.
-- use the manga id and chapter id obtained from the manga list and manga details endpoints to access specific manga and chapter information.
-- the response provides detailed information about the manga, including its status, genres, view count, and a list of chapters.
-- chapter details include the chapter title, list of chapter ids, and links to individual chapter images.
+- the `:id` parameter in the endpoint represents the unique path slug for a specific manga (from the manga list response).
+- the `:ch` parameter represents the unique path slug for a specific chapter.
+- the response provides detailed information about the manga, including its status, genres, and a list of chapters.
+- chapter details include the chapter title, list of chapter ids for navigation, and links to individual chapter images.

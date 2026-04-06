@@ -13,7 +13,7 @@ this hook is designed to fetch a list of manga titles with associated metadata u
 
 ### parameters
 
-- `params` (optional): additional parameters to customize the manga list request.
+- `params` (optional): additional parameters to customize the manga list request (e.g., `?category=action&page=1`).
 
 ### usage
 
@@ -21,7 +21,7 @@ this hook is designed to fetch a list of manga titles with associated metadata u
 import useMangaList from "path/to/useMangaList";
 
 const ExampleComponent = async () => {
-  const params = "?page=1&type=newest";
+  const params = "?page=1&category=action";
   const mangaListData = await useMangaList(params);
 };
 ```
@@ -34,7 +34,7 @@ this hook fetches detailed information about a specific manga using the `/api/ma
 
 ### parameters
 
-- `id`: unique identifier for the desired manga.
+- `id`: path slug for the desired manga (e.g., `attack-on-titan`).
 
 ### usage
 
@@ -42,7 +42,7 @@ this hook fetches detailed information about a specific manga using the `/api/ma
 import useManga from "path/to/useManga";
 
 const ExampleComponent = async () => {
-  const mangaId = "manga-oa952283";
+  const mangaId = "attack-on-titan";
   const mangaData = await useManga(mangaId);
 };
 ```
@@ -55,8 +55,8 @@ this hook fetches details about a specific chapter of a manga using the `/api/ma
 
 ### parameters
 
-- `id`: unique identifier for the manga.
-- `ch`: unique identifier for the desired chapter.
+- `id`: path slug for the manga (e.g., `attack-on-titan`).
+- `ch`: path slug for the desired chapter (e.g., `chapter-139`).
 
 ### usage
 
@@ -64,7 +64,7 @@ this hook fetches details about a specific chapter of a manga using the `/api/ma
 import useMangaChapter from "path/to/useMangaChapter";
 
 const ExampleComponent = async () => {
-  const mangaId = "manga-oa952283";
+  const mangaId = "attack-on-titan";
   const chapterId = "chapter-139";
   const chapterData = await useMangaChapter(mangaId, chapterId);
 };
@@ -78,7 +78,8 @@ this hook allows users to search for manga titles using the `/api/manga/search/:
 
 ### parameters
 
-- `params`: the search query string.
+- `query`: the search query string.
+- `page` (optional): the page number for pagination.
 
 ### usage
 
@@ -87,7 +88,7 @@ import useMangaSearch from "path/to/useMangaSearch";
 
 const ExampleComponent = async () => {
   const searchQuery = "attack on titan";
-  const searchResults = await useMangaSearch(searchQuery);
+  const searchResults = await useMangaSearch(searchQuery, { page: 1 });
 };
 ```
 

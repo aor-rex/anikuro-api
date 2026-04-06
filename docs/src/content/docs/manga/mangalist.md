@@ -26,20 +26,33 @@ get http://localhost:3000/api/manga/list
 {
   "mangaList": [
     {
-      "id": "1manga-oa952283",
-      "image": "https://www.mangakakalot.gg//mangaimage/manga-oa952283.jpg",
-      "title": "attack on titan",
-      "chapter": "chapter-139",
+      "id": "attack-on-titan",
+      "image": "https://mangabuddy.com/image/attack-on-titan.jpg",
+      "title": "Attack On Titan",
+      "chapter": "Chapter 139",
       "view": "105.8M",
       "description": "..."
     }
   ],
   "metaData": {
-    "totalStories": 10,
-    "totalPages": 100,
-    "type": [{ "id": "newest", "type": "Newest" }],
-    "state": [{ "id": "Completed", "type": "Completed" }],
-    "category": [{ "id": "all", "type": "ALL" }]
+    "type": [
+      { "id": "latest", "name": "Latest" },
+      { "id": "updated", "name": "Updated" }
+    ],
+    "state": [
+      { "id": "all", "name": "all" },
+      { "id": "completed", "name": "Completed" },
+      { "id": "ongoing", "name": "Ongoing" }
+    ],
+    "category": [
+      { "id": "all", "name": "all" },
+      { "id": "action", "name": "Action" },
+      { "id": "adventure", "name": "Adventure" },
+      { "id": "comedy", "name": "Comedy" },
+      { "id": "drama", "name": "Drama" },
+      { "id": "fantasy", "name": "Fantasy" },
+      { "id": "romance", "name": "Romance" }
+    ]
   }
 }
 ```
@@ -56,24 +69,8 @@ get http://localhost:3000/api/manga/list
 ##### query parameter: `category`
 
 - filter manga by category using the `category` query parameter.
-- possible values: `all`, `action`, `adventure`, `comedy`, `cooking`, `doujinshi`, `drama`, and more.
+- possible values: `all`, `action`, `adventure`, `comedy`, `drama`, `fantasy`, `romance`, and more.
 - example: `http://localhost:3000/api/manga/list?category=action`
-
-## filter by manga type (optional)
-
-##### query parameter: `type`
-
-- filter manga by type using the `type` query parameter.
-- possible values: `newest`, `latest`, `topview`.
-- example: `http://localhost:3000/api/manga/list?type=newest`
-
-## filter by manga state (optional)
-
-##### query parameter: `state`
-
-- filter manga by state (status) using the `state` query parameter.
-- possible values: `all`, `completed`, `ongoing`, `drop`, `unknown`.
-- example: `http://localhost:3000/api/manga/list?state=ongoing`
 
 ## response structure
 
@@ -88,11 +85,9 @@ interface MangaList {
     description: string;
   }>;
   metaData: {
-    totalStories: number;
-    totalPages: number;
-    type: Array<{ id: string; type: string }>;
-    state: Array<{ id: string; type: string }>;
-    category: Array<{ id: string; type: string }>;
+    type: Array<{ id: string; name: string }>;
+    state: Array<{ id: string; name: string }>;
+    category: Array<{ id: string; name: string }>;
   };
 }
 ```

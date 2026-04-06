@@ -38,6 +38,6 @@ once the server is running, open your browser and visit:
 
 - anikuro api server is running on [http://localhost:3000](http://localhost:3000).
 - try the health check endpoint: [http://localhost:3000/health](http://localhost:3000/health)
-- browse the documentation: [http://localhost:3000/docs/](http://localhost:3000/docs/)
+- browse the documentation: [http://localhost:3000/](http://localhost:3000/)
 
 feel free to explore the anikuro api to access manga data and enhance your manga-related applications. happy coding!

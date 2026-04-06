@@ -33,7 +33,7 @@ const ListManga = (req, res) => {
 
         if (id && title) {
           mangaList.push({
-            id: id.replace(/\//g, ""), // FIX Bug #11: Global replace of all slashes
+            id: id.replace(/^\/manga\//, ""), // clean slug for api routes
             image: image || "",
             title: title,
             chapter: chapter,

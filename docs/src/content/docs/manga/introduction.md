@@ -19,7 +19,7 @@ anikuro api leverages a cutting-edge technology stack to ensure seamless functio
 
 ## source
 
-anikuro api fetches its manga data from the popular manga website, [mangakakalot.gg](https://www.mangakakalot.gg/). this source is chosen for its extensive collection of manga, providing users with access to a wide variety of titles.
+anikuro api fetches its manga data from the popular manga website, [mangabuddy.com](https://mangabuddy.com/). this source is chosen for its extensive collection of manga, providing users with access to a wide variety of titles.
 
 ## philosophy
 
