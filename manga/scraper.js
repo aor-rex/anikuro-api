@@ -1,3 +1,6 @@
+// FIX: Disable TLS verification for self-signed certificate on mangabuddy.com
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 const https = require("https");
 const zlib = require("zlib");
 
