@@ -760,24 +760,6 @@
                   d.currentChapter +
                   "</p>";
 
-              if (d.chapterListIds && d.chapterListIds.length) {
-                html +=
-                  '<div class="param-row" style="margin-bottom:1rem"><label>jump to chapter</label>';
-                html +=
-                  "<select onchange=\"document.getElementById('reader-ch').value=this.value;fetchChapter()\">";
-                d.chapterListIds.forEach(function (ch) {
-                  html +=
-                    '<option value="' +
-                    ch.id +
-                    '" ' +
-                    (ch.id === chId ? "selected" : "") +
-                    ">" +
-                    (ch.name || ch.id) +
-                    "</option>";
-                });
-                html += "</select></div>";
-              }
-
               if (d.images && d.images.length) {
                 html += '<div class="reader-view">';
                 d.images.forEach(function (img) {

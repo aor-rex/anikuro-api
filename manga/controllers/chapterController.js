@@ -77,25 +77,9 @@ const chapterController = (req, res) => {
     );
   }
 
-  // Extract chapter list for navigation
-  const chapterListIds = [];
-  $(".chapters .chap-item h4 a").each((index, val) => {
-    const href = $(val).attr("href") || "";
-    const title = $(val).attr("title") || $(val).text().trim();
-    const chapterId = href.split("/").pop();
-
-    if (chapterId) {
-      chapterListIds.push({
-        id: chapterId,
-        name: title,
-      });
-    }
-  });
-
   res.json({
     title: mangaName,
     currentChapter: chapterName,
-    chapterListIds: chapterListIds,
     images: images,
   });
 };
