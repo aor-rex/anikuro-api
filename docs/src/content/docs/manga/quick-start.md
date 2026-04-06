@@ -46,7 +46,7 @@ now that anikuro api is running, let's test it. make a get request to the manga 
 - **endpoint:**
 
   ```http
-  get http://localhost:3000/api/manga/list
+  get https://aor-rex-anikuro-api.hf.space/api/manga/list
   ```
 
 - **example response:**

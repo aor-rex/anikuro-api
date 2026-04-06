@@ -12,12 +12,12 @@ the `/api/manga/list` endpoint provides a list of manga with associated metadata
 use your preferred api testing tool or any http client library to make a get request to the following endpoint:
 
 - **method:** get
-- **endpoint:** `http://localhost:3000/api/manga/list`
+- **endpoint:** `https://aor-rex-anikuro-api.hf.space/api/manga/list`
 
 ##### example
 
 ```http
-get http://localhost:3000/api/manga/list
+get https://aor-rex-anikuro-api.hf.space/api/manga/list
 ```
 
 ##### response
@@ -62,7 +62,7 @@ get http://localhost:3000/api/manga/list
 ##### query parameter: `page`
 
 - to fetch a specific page, use the `page` query parameter.
-- example: `http://localhost:3000/api/manga/list?page=2`
+- example: `https://aor-rex-anikuro-api.hf.space/api/manga/list?page=2`
 
 ## filter by manga category (optional)
 
@@ -70,7 +70,7 @@ get http://localhost:3000/api/manga/list
 
 - filter manga by category using the `category` query parameter.
 - possible values: `all`, `action`, `adventure`, `comedy`, `drama`, `fantasy`, `romance`, and more.
-- example: `http://localhost:3000/api/manga/list?category=action`
+- example: `https://aor-rex-anikuro-api.hf.space/api/manga/list?category=action`
 
 ## response structure
 

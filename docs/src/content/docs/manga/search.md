@@ -10,7 +10,7 @@ the `/api/manga/search/:query` endpoint allows you to search for manga based on 
 #### example
 
 ```http
-get http://localhost:3000/api/manga/search/attack%20on%20titan?page=1
+get https://aor-rex-anikuro-api.hf.space/api/manga/search/attack%20on%20titan?page=1
 ```
 
 #### response

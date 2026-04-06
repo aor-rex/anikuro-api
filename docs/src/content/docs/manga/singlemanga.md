@@ -12,7 +12,7 @@ note: the `:id` is the slug from the manga list response (e.g., `attack-on-titan
 #### example
 
 ```http
-get http://localhost:3000/api/manga/attack-on-titan
+get https://aor-rex-anikuro-api.hf.space/api/manga/attack-on-titan
 ```
 
 #### response
@@ -46,7 +46,7 @@ the `/api/manga/:id/:ch` endpoint provides details about a specific chapter of a
 #### example
 
 ```http
-get http://localhost:3000/api/manga/attack-on-titan/chapter-139
+get https://aor-rex-anikuro-api.hf.space/api/manga/attack-on-titan/chapter-139
 ```
 
 #### response
