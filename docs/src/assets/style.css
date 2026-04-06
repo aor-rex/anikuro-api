@@ -59,31 +59,116 @@ main b {
   color: var(--sl-color-white);
 }
 
-/* ── Header ── */
+/* ── Header / Navbar ── */
 .header {
   background:
     radial-gradient(
-      ellipse at top left,
-      rgba(204, 0, 0, 0.08) 0%,
+      ellipse at 20% 0%,
+      rgba(204, 0, 0, 0.1) 0%,
       transparent 50%
     ),
     radial-gradient(
-      ellipse at top right,
-      rgba(255, 51, 51, 0.05) 0%,
+      ellipse at 80% 0%,
+      rgba(255, 51, 51, 0.06) 0%,
       transparent 50%
     ),
     var(--sl-color-black);
   border-bottom: 1px solid var(--sl-color-gray-5);
-  box-shadow: 0 1px 20px rgba(204, 0, 0, 0.12);
+  box-shadow:
+    0 2px 24px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(204, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(204, 0, 0, 0.3) 20%,
+    rgba(255, 51, 51, 0.4) 50%,
+    rgba(204, 0, 0, 0.3) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.header .site-title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.header .site-title-container img {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 6px rgba(204, 0, 0, 0.4));
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.header .site-title-container img:hover {
+  filter: drop-shadow(0 0 12px rgba(204, 0, 0, 0.6));
+  transform: rotate(-5deg) scale(1.05);
 }
 
 .site-title {
   font-weight: 800;
-  letter-spacing: 0.02em;
-  background: linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%);
+  letter-spacing: 0.04em;
+  font-size: 1.15rem;
+  background: linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff4444 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-transform: lowercase;
+}
+
+/* ── Navbar search ── */
+.header sl-search {
+  border-color: var(--sl-color-gray-5) !important;
+  background: var(--sl-color-gray-6) !important;
+  border-radius: 8px !important;
+}
+
+.header sl-search input {
+  color: var(--sl-color-white) !important;
+}
+
+/* ── Navbar social icons ── */
+.social-icons a {
+  color: var(--sl-color-gray-3);
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.social-icons a:hover {
+  color: #ff3333;
+  transform: scale(1.1);
+}
+
+/* ── Navbar theme toggle ── */
+button[data-theme-toggle] {
+  color: var(--sl-color-gray-3);
+  border-color: var(--sl-color-gray-5);
+  transition: all 0.15s ease;
+}
+
+button[data-theme-toggle]:hover {
+  color: #ff3333;
+  border-color: #cc0000;
+  box-shadow: 0 0 8px rgba(204, 0, 0, 0.2);
 }
 
 /* ── Sidebar ── */
