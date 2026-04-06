@@ -9,6 +9,9 @@ const mangaListRouter = require("./routes/mangaListRouter");
 const mangaSearch = require("./routes/mangaSearch");
 require("dotenv").config();
 
+// FIX: Disable TLS rejection for upstream manga source on HF Spaces
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 // FIX Bug #48: Request ID middleware (first for correlation)
 app.use(requestId);
 
