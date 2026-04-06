@@ -1,35 +1,38 @@
 ---
-title: Welcome to Manga Hook API
-description: Welcome to Manga Hook API ( manga api )– your premier gateway to a vast repository of manga data. Seamlessly integrate and explore the world of manga with our user-friendly API. Access comprehensive documentation, contribute to our open-source GitHub repository, and kickstart your journey with easy-to-follow guides. Empower your projects with Manga Hook API and unlock endless possibilities for manga enthusiasts and developers alike.
+title: anikuro api
+description: your premier gateway to a vast repository of manga data. seamlessly integrate and explore the world of manga with our user-friendly api.
 template: splash
 hero:
-  tagline: your go-to manga API for accessing a vast repository of manga data freely.
+  tagline: your go-to manga api for accessing a vast repository of manga data freely.
   image:
     file: ./houston.webp
   actions:
-    - text: Read Docs
+    - text: read docs
       link: /introduction
       icon: right-arrow
       variant: primary
-    - text: Github repo
-      link: https://github.com/kiraaziz/mangahook-api
+    - text: github repo
+      link: https://github.com/aor-rex/anikuro-api
       icon: github
-	  variant: secondary
+      variant: secondary
 ---
+
 export const prerender = true;
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from "@astrojs/starlight/components";
 
-## About
+## about
+
 <CardGrid>
-  <Card title="API Overview" icon="rocket">
-    Discover manga effortlessly with our API. Get a full list in one request and delve into single manga details easily.
+  <Card title="api overview" icon="rocket">
+    discover manga effortlessly with our api. get a full list in one request and delve into single manga details easily.
   </Card>
 
-  <Card title="Search Support" icon="pen">
-    Enable quick and efficient manga searches with advanced features, ensuring users find their favorites effortlessly.
-  </Card>
+<Card title="search support" icon="search">
+  enable quick and efficient manga searches with advanced features, ensuring
+  users find their favorites effortlessly.
+</Card>
 
-  <Card title="Integration with Next.js" icon="document">
-    Seamlessly integrate our manga API with Next.js for dynamic and responsive web applications.
+  <Card title="test endpoints live" icon="code">
+    try api endpoints directly from the docs with interactive test widgets built into every endpoint page.
   </Card>
 </CardGrid>

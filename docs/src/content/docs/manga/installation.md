@@ -1,81 +1,43 @@
 ---
-title: Installation
-description: Effortlessly set up Manga Hook API and Next.js client on your local machine with our step-by-step guide. Clone the repository, install dependencies, and start the Express server for Manga Hook. Move to the Next.js client directory, install dependencies, and run the development server. For production, build the Next.js app and start the server. Explore Manga Hook API and Next.js client to access manga data and enhance your applications. Happy coding!
+title: installation
+description: effortlessly set up anikuro api on your local machine with our step-by-step guide.
 ---
-Follow these detailed steps to set up the Manga Hook API and Next.js client application on your local machine. This guide assumes you have Git, Node.js, and npm installed.
 
-## 1. Clone the Repository:
+follow these detailed steps to set up the anikuro api on your local machine. this guide assumes you have git, node.js, and npm installed.
 
-Open your terminal and run the following command to clone the Manga Hook repository:
+## 1. clone the repository
+
+open your terminal and run the following command to clone the anikuro api repository:
 
 ```bash
 git clone https://github.com/aor-rex/anikuro-api
 ```
 
-## 2. Set Up the Server:
+## 2. set up the server
 
-Navigate to the server directory and install dependencies:
+navigate to the manga directory and install dependencies:
 
 ```bash
-cd server
+cd manga
 npm install
 ```
 
-#### Start the Express Server:
+#### start the express server
 
-Launch the Manga Hook server by running:
-
-```bash
-npm run start
-```
-
-This will start the server on port 3000.
-
-## 3. Set Up the Client (Next.js App):
-
-Navigate to the client directory and install dependencies:
-
-```bash
-cd client
-npm install
-```
-
-#### Run the Development Server:
-
-Start the Next.js development server with Tailwind CSS:
-
-```bash
-npm run dev
-```
-
-This will open the client application on [http://localhost:3001](http://localhost:3001) by default.
-
-## 4. Production Deployment for Next.js App:
-
-For production deployment, follow these additional steps:
-
-#### Build the Next.js App:
-
-Generate a production build of the Next.js app:
-
-```bash
-npm run build
-```
-
-#### Start the Production Server:
-
-Run the built app in production mode:
+launch the anikuro api server by running:
 
 ```bash
 npm start
 ```
 
-Now, your Next.js app is running in production mode.
+this will start the server on port 3000.
 
-## Summary:
+## 3. test the api
 
-- Manga Hook server is running on [http://localhost:3000](http://localhost:3000).
-- Next.js client app is running on [http://localhost:3001](http://localhost:3001) during development.
-- In production, the Next.js app is built using `npm run build` and started with `npm start`.
+once the server is running, open your browser and visit:
 
-Feel free to explore the Manga Hook API and Next.js client app to access manga data and enhance your manga-related applications. Happy coding!
+- anikuro api server is running on [http://localhost:3000](http://localhost:3000).
+- try the health check endpoint: [http://localhost:3000/health](http://localhost:3000/health)
+- browse the documentation: [http://localhost:3000/docs/](http://localhost:3000/docs/)
+
+feel free to explore the anikuro api to access manga data and enhance your manga-related applications. happy coding!

@@ -1,57 +1,55 @@
 ---
-title: Getting Started
-description: Get started with Manga Hook API in just a few simple steps. Clone the repository, navigate to the server directory, install dependencies, and start the Express server. Once set up, explore and integrate Manga Hook seamlessly into your projects, accessing a vast repository of manga data through provided API endpoints. Enhance your manga-related applications effortlessly with Manga Hook.
+title: quick start
+description: get started with anikuro api in just a few simple steps.
 ---
 
-Follow these simple steps to get Manga Hook up and running on your local machine:
+follow these simple steps to get anikuro api up and running on your local machine:
 
-### 1. **Clone the Repository:**
+### 1. clone the repository
 
-Open your terminal and run the following command to clone the Manga Hook repository:
+open your terminal and run the following command to clone the anikuro api repository:
 
 ```bash
 git clone https://github.com/aor-rex/anikuro-api
 ```
 
-### 2. **Navigate to the Server Directory:**
+### 2. navigate to the manga directory
 
-Change your working directory to the server folder:
+change your working directory to the manga folder:
 
 ```bash
-cd server
+cd manga
 ```
 
-### 3. **Install Dependencies:**
+### 3. install dependencies
 
-Install the required dependencies using npm:
+install the required dependencies using npm:
 
 ```bash
 npm install
 ```
 
-### 4. **Start the Express Server:**
+### 4. start the express server
 
-Launch the Manga Hook server by running the following command:
+launch the anikuro api server by running the following command:
 
 ```bash
-npm run start
+npm start
 ```
 
-This will start the server on port 3000.
+this will start the server on port 3000.
 
-Now that Manga Hook is running, let's explore how to retrieve manga data.
+## try an endpoint
 
-## List Manga
+now that anikuro api is running, let's test it. make a get request to the manga list endpoint:
 
-To list available manga, make a GET request to the following endpoint using a tool like Postman or Insomnia:
-
-- **Endpoint:**
+- **endpoint:**
 
   ```http
-  GET http://localhost:3000/api/manga/list
+  get http://localhost:3000/api/manga/list
   ```
 
-- **Example Response:**
+- **example response:**
 
   ```json
   {
@@ -59,79 +57,44 @@ To list available manga, make a GET request to the following endpoint using a to
       {
         "id": "1manga-oa952283",
         "image": "https://www.mangakakalot.gg//mangaimage/manga-oa952283.jpg",
-        "title": "Attack On Titan",
+        "title": "attack on titan",
         "chapter": "chapter-139",
         "view": "105.8M",
         "description": "..."
       }
-      // ... other manga entries
     ],
     "metaData": {
       "totalStories": 10,
       "totalPages": 100,
-      "type": [
-        {
-          "id": "newest",
-          "type": "Newest"
-        }
-        // ... other types
-      ],
-      "state": [
-        {
-          "id": "Completed",
-          "type": "Completed"
-        }
-        // ... other states
-      ],
-      "category": [
-        {
-          "id": "all",
-          "type": "ALL"
-        }
-        // ... 40 other categories
-      ]
+      "type": [{ "id": "newest", "type": "Newest" }],
+      "state": [{ "id": "Completed", "type": "Completed" }],
+      "category": [{ "id": "all", "type": "ALL" }]
     }
   }
   ```
 
-Now you're ready to explore and integrate Manga Hook into your projects. Feel free to use the provided API endpoints to access manga data and enhance your manga-related applications!
+## response format
 
-- **Response Format:**
-  The API will respond with data structured as follows:
+the api will respond with data structured as follows:
 
-      ```typescript
-      interface MangaList {
-          mangaList: [
-              {
-                  id: String,
-                  image: String,
-                  title: String,
-                  chapter: String,
-                  view: String,
-                  description: String
-              }
-          ],
-          metaData: {
-              totalStories: Number,
-              totalPages: Number,
-              type: [
-                  {
-                      id: String,
-                      type: String
-                  }
-              ],
-              state: [
-                  {
-                      id: String,
-                      type: String
-                  }
-              ],
-              category: [
-                  {
-                      id: String,
-                      type: String
-                  }
-              ],
-          }
-      }
-      ```
+```typescript
+interface MangaList {
+  mangaList: Array<{
+    id: string;
+    image: string;
+    title: string;
+    chapter: string;
+    view: string;
+    description: string;
+  }>;
+  metaData: {
+    totalStories: number;
+    totalPages: number;
+    type: Array<{ id: string; type: string }>;
+    state: Array<{ id: string; type: string }>;
+    category: Array<{ id: string; type: string }>;
+  };
+}
+```
+
+now you're ready to explore and integrate anikuro api into your projects. feel free to use the provided api endpoints to access manga data and enhance your manga-related applications!

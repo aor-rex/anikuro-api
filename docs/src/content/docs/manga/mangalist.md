@@ -1,26 +1,26 @@
 ---
-title: Manga List
-description: Explore the Manga List API endpoint /api/manga/list with detailed steps for making GET requests and understanding the responses. Fetch a comprehensive list of manga with associated metadata using your preferred API testing tool or HTTP client library. Optionally, delve into pagination, filter by manga category, type, or state with specified query parameters. Review the JSON response structure, and use the provided TypeScript interface. Start integrating and tailoring manga data to enhance your applications and dive into the diverse world of manga effortlessly!
+title: manga list
+description: fetch a comprehensive list of manga with associated metadata using the /api/manga/list endpoint.
 ---
 
-#### Endpoint: `/api/manga/list`
+#### endpoint: `/api/manga/list`
 
-The `/api/manga/list` endpoint provides a list of manga with associated metadata. Follow the steps below to make a request and understand the response.
+the `/api/manga/list` endpoint provides a list of manga with associated metadata. follow the steps below to make a request and understand the response.
 
-## Simple Fetch
+## simple fetch
 
-Use your preferred API testing tool (e.g., Postman, Insomnia) or any HTTP client library to make a GET request to the following endpoint:
+use your preferred api testing tool or any http client library to make a get request to the following endpoint:
 
-- **Method:** GET
-- **Endpoint:** `http://localhost:3000/api/manga/list`
+- **method:** get
+- **endpoint:** `http://localhost:3000/api/manga/list`
 
-##### Example
+##### example
 
 ```http
-GET http://localhost:3000/api/manga/list
+get http://localhost:3000/api/manga/list
 ```
 
-##### Response
+##### response
 
 ```json
 {
@@ -28,139 +28,71 @@ GET http://localhost:3000/api/manga/list
     {
       "id": "1manga-oa952283",
       "image": "https://www.mangakakalot.gg//mangaimage/manga-oa952283.jpg",
-      "title": "Attack On Titan",
+      "title": "attack on titan",
       "chapter": "chapter-139",
       "view": "105.8M",
       "description": "..."
     }
-    // ... other manga entries
   ],
   "metaData": {
     "totalStories": 10,
     "totalPages": 100,
-    "type": [
-      {
-        "id": "newest",
-        "type": "Newest"
-      }
-      // ... other types
-    ],
-    "state": [
-      {
-        "id": "Completed",
-        "type": "Completed"
-      }
-      // ... other states
-    ],
-    "category": [
-      {
-        "id": "all",
-        "type": "ALL"
-      }
-      // ... 40 other categories
-    ]
+    "type": [{ "id": "newest", "type": "Newest" }],
+    "state": [{ "id": "Completed", "type": "Completed" }],
+    "category": [{ "id": "all", "type": "ALL" }]
   }
 }
 ```
 
-## Explore Pagination (Optional)
+## explore pagination (optional)
 
-##### Query Parameter: `page`
+##### query parameter: `page`
 
-- To fetch a specific page, use the `page` query parameter.
-- Example: `http://localhost:3000/api/manga/list?page=2`
+- to fetch a specific page, use the `page` query parameter.
+- example: `http://localhost:3000/api/manga/list?page=2`
 
-##### Example
+## filter by manga category (optional)
 
-```http
-GET http://localhost:3000/api/manga/list?page=2
-```
+##### query parameter: `category`
 
-## Filter by Manga Category (Optional)
+- filter manga by category using the `category` query parameter.
+- possible values: `all`, `action`, `adventure`, `comedy`, `cooking`, `doujinshi`, `drama`, and more.
+- example: `http://localhost:3000/api/manga/list?category=action`
 
-##### Query Parameter: `category`
+## filter by manga type (optional)
 
-- Filter manga by category using the `category` query parameter.
-- Possible values: `all`, `Action`, `Adventure`, `Comedy`, `Cooking`, `Doujinshi`, `Drama`, and more.
-- Example: `http://localhost:3000/api/manga/list?category=Action`
+##### query parameter: `type`
 
-##### Example
+- filter manga by type using the `type` query parameter.
+- possible values: `newest`, `latest`, `topview`.
+- example: `http://localhost:3000/api/manga/list?type=newest`
 
-```
-http://localhost:3000/api/manga/list?category=Action
-```
+## filter by manga state (optional)
 
-## Filter by Manga Type (Optional)
+##### query parameter: `state`
 
-##### Query Parameter: `type`
+- filter manga by state (status) using the `state` query parameter.
+- possible values: `all`, `completed`, `ongoing`, `drop`, `unknown`.
+- example: `http://localhost:3000/api/manga/list?state=ongoing`
 
-- Filter manga by type using the `type` query parameter.
-- Possible values: `newest`, `latest`, `topview`.
-- Example: `http://localhost:3000/api/manga/list?type=newest`
-
-##### Example
-
-```http
-GET http://localhost:3000/api/manga/list?type=newest
-```
-
-## Filter by Manga State (Optional)
-
-##### Query Parameter: `state`
-
-- Filter manga by state (status) using the `state` query parameter.
-- Possible values: `all`, `Completed`, `Ongoing`, `drop`, `unknown`.
-- Example: `http://localhost:3000/api/manga/list?state=Ongoing`
-
-##### Example
-
-```http
-GET http://localhost:3000/api/manga/list?state=Ongoing
-```
-
-## Review Response
-
-The API responds with a JSON object containing a `mangaList` array and `metaData`. Inspect the structure and data to understand the manga entries and associated metadata.
-
-#### Response Structure
+## response structure
 
 ```typescript
 interface MangaList {
-  mangaList: [
-    {
-      id: String;
-      image: String;
-      title: String;
-      chapter: String;
-      view: String;
-      description: String;
-    },
-  ];
+  mangaList: Array<{
+    id: string;
+    image: string;
+    title: string;
+    chapter: string;
+    view: string;
+    description: string;
+  }>;
   metaData: {
-    totalStories: Number;
-    totalPages: Number;
-    type: [
-      {
-        id: String;
-        type: String;
-      },
-    ];
-    state: [
-      {
-        id: String;
-        type: String;
-      },
-    ];
-    category: [
-      {
-        id: String;
-        type: String;
-      },
-    ];
+    totalStories: number;
+    totalPages: number;
+    type: Array<{ id: string; type: string }>;
+    state: Array<{ id: string; type: string }>;
+    category: Array<{ id: string; type: string }>;
   };
 }
 ```
-
-## Explore and Integrate
-
-Now that you've successfully fetched manga data, explore the various filtering options provided by the `/api/manga/list` endpoint to tailor the manga list to your specific requirements. Integrate this data into your applications and enjoy the world of manga at your fingertips!
