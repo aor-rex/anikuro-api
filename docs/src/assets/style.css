@@ -2,7 +2,6 @@
 
 /* ============================================
    ANIKURO API — AMOLED + RED THEME
-   pure black background + crimson accents
    ============================================ */
 
 :root {
@@ -42,47 +41,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Main content area ── */
+/* ── Main content ── */
 main,
 main * {
   color: var(--sl-color-white);
 }
-
 main p,
 main li,
 main td {
   color: var(--sl-color-gray-2);
 }
-
 main strong,
 main b {
   color: var(--sl-color-white);
 }
 
-/* ── Header / Navbar ── */
+/* ── Navbar — clean, no shadow, no logo ── */
 .header {
-  background:
-    radial-gradient(
-      ellipse at 20% 0%,
-      rgba(204, 0, 0, 0.1) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 80% 0%,
-      rgba(255, 51, 51, 0.06) 0%,
-      transparent 50%
-    ),
-    var(--sl-color-black);
+  background: var(--sl-color-black);
   border-bottom: 1px solid var(--sl-color-gray-5);
-  box-shadow:
-    0 2px 24px rgba(0, 0, 0, 0.8),
-    0 1px 0 rgba(204, 0, 0, 0.15);
+  box-shadow: none;
   padding: 0.5rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .header::after {
@@ -106,31 +88,18 @@ main b {
 .header .site-title-container {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .header .site-title-container img {
-  width: 28px;
-  height: 28px;
-  filter: drop-shadow(0 0 6px rgba(204, 0, 0, 0.4));
-  transition:
-    filter 0.2s ease,
-    transform 0.2s ease;
-}
-
-.header .site-title-container img:hover {
-  filter: drop-shadow(0 0 12px rgba(204, 0, 0, 0.6));
-  transform: rotate(-5deg) scale(1.05);
+  display: none;
 }
 
 .site-title {
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   font-size: 1.15rem;
-  background: linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff4444 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ff3333;
   text-transform: lowercase;
 }
 
@@ -140,7 +109,6 @@ main b {
   background: var(--sl-color-gray-6) !important;
   border-radius: 8px !important;
 }
-
 .header sl-search input {
   color: var(--sl-color-white) !important;
 }
@@ -152,19 +120,17 @@ main b {
     color 0.15s ease,
     transform 0.15s ease;
 }
-
 .social-icons a:hover {
   color: #ff3333;
   transform: scale(1.1);
 }
 
-/* ── Navbar theme toggle ── */
+/* ── Theme toggle ── */
 button[data-theme-toggle] {
   color: var(--sl-color-gray-3);
   border-color: var(--sl-color-gray-5);
   transition: all 0.15s ease;
 }
-
 button[data-theme-toggle]:hover {
   color: #ff3333;
   border-color: #cc0000;
@@ -176,30 +142,23 @@ button[data-theme-toggle]:hover {
   background: var(--sl-color-black);
   border-right: 1px solid var(--sl-color-gray-5);
 }
-
 .sidebar-pane .top-header {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #ff3333, #cc0000);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ff3333;
 }
-
 .sidebar-pane .sidebar-content a {
   transition: all 0.15s ease;
   border-radius: 6px;
   position: relative;
   padding-left: 0.75rem;
 }
-
 .sidebar-pane .sidebar-content a:hover,
 .sidebar-pane .sidebar-content a.active {
   color: #ff4444;
   background: linear-gradient(90deg, rgba(204, 0, 0, 0.08), transparent);
 }
-
 .sidebar-pane .sidebar-content a::before {
   content: "";
   position: absolute;
@@ -212,7 +171,6 @@ button[data-theme-toggle]:hover {
   transform: scaleY(0);
   transition: transform 0.15s ease;
 }
-
 .sidebar-pane .sidebar-content a:hover::before,
 .sidebar-pane .sidebar-content a.active::before {
   transform: scaleY(1);
@@ -227,20 +185,14 @@ h5,
 h6 {
   color: var(--sl-color-white);
 }
-
 h1 {
-  background: linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ff3333;
   font-weight: 800;
 }
-
 h2 {
   border-bottom: 1px solid var(--sl-color-gray-5);
   padding-bottom: 0.5rem;
 }
-
 h2::before {
   content: "▸ ";
   color: #cc0000;
@@ -254,7 +206,6 @@ h2::before {
   background: var(--sl-color-gray-6) !important;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
-
 .expressive-code::before {
   content: "";
   position: absolute;
@@ -265,7 +216,6 @@ h2::before {
   background: linear-gradient(90deg, #cc0000, #ff3333, transparent);
   border-radius: 10px 10px 0 0;
 }
-
 code:not(.expressive-code code) {
   background: var(--sl-color-gray-6);
   border: 1px solid var(--sl-color-gray-5);
@@ -275,25 +225,24 @@ code:not(.expressive-code code) {
   font-size: 0.85em;
 }
 
-/* ── Buttons ── */
+/* ── Buttons — white text on red ── */
 a[role="button"][data-variant="primary"] {
   background: linear-gradient(135deg, #cc0000, #990000) !important;
   border-color: #cc0000 !important;
+  color: #ffffff !important;
   font-weight: 600;
   transition: all 0.2s ease;
 }
-
 a[role="button"][data-variant="primary"]:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(204, 0, 0, 0.35);
+  color: #ffffff !important;
 }
-
 a[role="button"][data-variant="secondary"] {
   border-color: #cc0000 !important;
   color: #ff6666 !important;
   font-weight: 600;
 }
-
 a[role="button"][data-variant="secondary"]:hover {
   background: rgba(204, 0, 0, 0.1);
 }
@@ -305,7 +254,6 @@ a[role="button"][data-variant="secondary"]:hover {
   background: var(--sl-color-gray-6);
   transition: all 0.2s ease;
 }
-
 .sl-card:hover {
   border-color: #cc0000;
   box-shadow: 0 4px 20px rgba(204, 0, 0, 0.12);
@@ -405,34 +353,29 @@ hr {
   );
 }
 
-/* ── Starlight Aside (Tip / Warning / Note) ── */
+/* ── Asides ── */
 .starlight-aside {
   border-radius: 8px;
   border-left-width: 3px;
-  border-left-color: #cc0000;
 }
-
 .starlight-aside--note {
   border-left-color: #cc0000;
   background: rgba(204, 0, 0, 0.06);
 }
-
 .starlight-aside--tip {
   border-left-color: #ff3333;
   background: rgba(255, 51, 51, 0.06);
 }
-
 .starlight-aside--caution {
   border-left-color: #ff6666;
   background: rgba(255, 102, 102, 0.06);
 }
-
 .starlight-aside--danger {
   border-left-color: #cc0000;
   background: rgba(204, 0, 0, 0.08);
 }
 
-/* ── Subtle background pattern ── */
+/* ── Background dot pattern ── */
 main::before {
   content: "";
   position: fixed;
@@ -441,9 +384,4 @@ main::before {
   background-image: radial-gradient(rgba(204, 0, 0, 0.03) 1px, transparent 1px);
   background-size: 24px 24px;
   pointer-events: none;
-}
-
-/* ── Logo in header ── */
-.header .site-title-container img {
-  filter: drop-shadow(0 0 8px rgba(204, 0, 0, 0.3));
 }
