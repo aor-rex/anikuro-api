@@ -17,7 +17,7 @@ export default defineConfig({
           href: "https://github.com/aor-rex/anikuro-api",
         },
       ],
-      customCss: ["/src/assets/style.css"],
+      customCss: ["./src/assets/style.css"],
       sidebar: [
         {
           label: "Getting Started",
