@@ -39,9 +39,9 @@ app.use((req, res, next) => {
 
 // Routes — all manga endpoints under /api/manga/*
 // Routes — order matters! Specific routes MUST come before catch-all :id
-app.use("/api/manga/list", mangaListRouter);  // /api/manga/list
-app.use("/api/manga/search", mangaSearch);    // /api/manga/search/:query
-app.use("/api/manga", mangaRouter);           // /api/manga/:id, /api/manga/:id/:ch
+app.use("/api/manga/list", mangaListRouter); // /api/manga/list
+app.use("/api/manga/search", mangaSearch); // /api/manga/search/:query
+app.use("/api/manga", mangaRouter); // /api/manga/:id, /api/manga/:id/:ch
 
 // Serve built Astro docs at /docs (no API key required)
 const docsPath = path.join(__dirname, "..", "docs", "dist");
@@ -52,6 +52,11 @@ app.use(
     index: "index.html",
   }),
 );
+
+// Redirect root to docs
+app.get("/", (req, res) => {
+  res.redirect("/docs/");
+});
 
 // Health check (bypasses API key)
 app.get("/health", (req, res) => {
