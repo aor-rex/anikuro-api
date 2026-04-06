@@ -1,52 +1,45 @@
-import { defineConfig } from 'astro/config';
-import starlight from '@astrojs/starlight';
-import vercelStatic from '@astrojs/vercel/static';
+import { defineConfig } from "astro/config";
+import starlight from "@astrojs/starlight";
+
 // https://astro.build/config
 export default defineConfig({
-  site: "https://mangahook-api.vercel.app",
+  site: "https://aor-rex-anikuro-api.hf.space",
+  base: "/docs",
+  output: "static",
   integrations: [
     starlight({
-      title: 'Manga Hook',
+      title: "Anikuro API",
+      description: "Anikuro API Documentation",
       social: {
-        github: 'https://github.com/kiraaziz/mangahook-api',
+        github: "https://github.com/aor-rex/anikuro-api",
       },
-      customCss: [
-        "/src/assets/style.css"
-      ],
+      customCss: ["/src/assets/style.css"],
       sidebar: [
         {
-          label: 'Getting Started',
+          label: "Getting Started",
           items: [
-            { label: 'Introduction', link: 'introduction' },
-            { label: 'Quick Start Guide', link: 'quick-start' }
+            { label: "Introduction", link: "/manga/introduction" },
+            { label: "Quick Start", link: "/manga/quick-start" },
           ],
         },
         {
-          label: 'API References',
+          label: "API Reference",
+          collapsed: false,
           items: [
-            { label: 'Installation', link: 'installation' },
-            { label: 'Manga List', link: 'mangalist' },
-            { label: 'Get Manga Detail', link: 'singlemanga' },
-            { label: 'Search', link: 'search' },
+            { label: "Manga List", link: "/manga/mangalist" },
+            { label: "Manga Detail", link: "/manga/singlemanga" },
+            { label: "Search", link: "/manga/search" },
+            { label: "Installation", link: "/manga/installation" },
           ],
         },
         {
-          label: 'Showcase',
+          label: "Guides",
           items: [
-            { label: 'Example (Nextjs)', link: 'example' },
-            { label: 'Web Hook', link: 'hooks' },
+            { label: "Examples", link: "/manga/example" },
+            { label: "Hooks", link: "/manga/hooks" },
           ],
-        }
+        },
       ],
     }),
   ],
-  output: 'static',
-  adapter: vercelStatic({
-    webAnalytics: {
-      enabled: true,
-    },
-    speedInsights: {
-      enabled: true,
-    },
-  }),
 });

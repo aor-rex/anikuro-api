@@ -1,0 +1,29 @@
+# Dependencies
+manga/node_modules/
+docs/node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.qwen/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+docs/dist/
+
+# Documentation source (we serve the built version)
+docs/src/
+
+# Examples
+next exemple/
+
+# Misc
+*.md
+LICENSE
