@@ -38,7 +38,7 @@ export default defineConfig({
         {
           label: "Guides",
           items: [
-            { label: "API Playground", link: "/playground.html" },
+            { label: "API Playground", link: "/playground" },
             { label: "Examples", link: "/manga/example" },
             { label: "Hooks", link: "/manga/hooks" },
           ],
