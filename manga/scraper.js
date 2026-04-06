@@ -51,8 +51,8 @@ function getRandomHeaders() {
 
 // Request queue for rate limiting
 let lastRequestTime = 0;
-const MIN_DELAY = 2000; // Minimum 2s between requests to upstream
-const MAX_DELAY = 3500; // Maximum 3.5s
+const MIN_DELAY = 1200; // Minimum 1.2s between requests to upstream
+const MAX_DELAY = 2500; // Maximum 2.5s
 
 function getRandomDelay() {
   return Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY)) + MIN_DELAY;
@@ -69,12 +69,11 @@ async function rateLimit() {
 }
 
 // FIX Bug #6: Redirect tracking without recursion issues
-async function scrape(path, redirectCount = 0, attempt = 1) {
+async function scrape(path, redirectCount = 0) {
   await rateLimit();
 
   const MAX_REDIRECTS = 5;
   const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB max (was 50MB)
-  const MAX_ATTEMPTS = 3; // Retry 503 errors up to 3 times
 
   return new Promise((resolve, reject) => {
     const url = `${BASE_URL}${path}`;
@@ -105,19 +104,6 @@ async function scrape(path, redirectCount = 0, attempt = 1) {
         return scrape(redirectPath, redirectCount + 1)
           .then(resolve)
           .catch(reject);
-      }
-
-      // Retry on 503 with backoff
-      if (res.statusCode === 503 && attempt < MAX_ATTEMPTS) {
-        res.resume();
-        console.log(`[scraper] 503 received, retry ${attempt}/${MAX_ATTEMPTS}`);
-        return setTimeout(
-          () =>
-            scrape(path, redirectCount, attempt + 1)
-              .then(resolve)
-              .catch(reject),
-          3000 * attempt, // Exponential backoff: 3s, 6s
-        );
       }
 
       if (res.statusCode >= 400) {
