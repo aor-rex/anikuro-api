@@ -19,9 +19,6 @@ Thumbs.db
 # Build output
 docs/dist/
 
-# Documentation source (we serve the built version)
-docs/src/
-
 # Examples
 next exemple/
 
