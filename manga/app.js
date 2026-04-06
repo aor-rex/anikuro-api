@@ -15,7 +15,7 @@ app.use(requestId);
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(ApiKey); // FIX Bug #3: Apply API key auth to all routes
+// app.use(ApiKey); // Disabled for public access
 
 // Request logging middleware
 app.use((req, res, next) => {
