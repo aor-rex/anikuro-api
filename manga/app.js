@@ -43,25 +43,57 @@ app.use("/api/manga/list", mangaListRouter); // /api/manga/list
 app.use("/api/manga/search", mangaSearch); // /api/manga/search/:query
 app.use("/api/manga", mangaRouter); // /api/manga/:id, /api/manga/:id/:ch
 
-// Serve built Astro docs at / (no API key required)
+// Serve built Astro docs at /docs (no API key required)
 const docsPath = path.join(__dirname, "..", "docs", "dist");
 app.use(
-  "/",
+  "/docs",
   require("express").static(docsPath, {
     maxAge: "1d",
     index: "index.html",
   }),
 );
 
-// Health check (bypasses API key)
+// Health check — extensive (bypasses API key)
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
+    name: "anikuro api",
     version: process.env.npm_package_version || "1.0.0",
-    docs: "/docs",
+    description: "your anime manga api gateway",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    uptime_human: formatUptime(process.uptime()),
+    node_version: process.version,
+    platform: process.platform,
+    memory_usage: process.memoryUsage(),
+    endpoints: {
+      docs: "/docs",
+      manga_list: "/api/manga/list",
+      manga_detail: "/api/manga/:id",
+      manga_chapter: "/api/manga/:id/:ch",
+      manga_search: "/api/manga/search/:query",
+      health: "/health",
+    },
+    source: "https://github.com/aor-rex/anikuro-api",
   });
+});
+
+function formatUptime(seconds) {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  let out = "";
+  if (d) out += d + "d ";
+  if (h) out += h + "h ";
+  if (m) out += m + "m ";
+  out += s + "s";
+  return out.trim();
+}
+
+// Root — redirect to health
+app.get("/", (req, res) => {
+  res.redirect("/health");
 });
 
 // FIX Bug #12: 404 handler

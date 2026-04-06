@@ -3,6 +3,7 @@ import starlight from "@astrojs/starlight";
 
 export default defineConfig({
   site: "https://aor-rex-anikuro-api.hf.space",
+  base: "/docs",
   output: "static",
   integrations: [
     starlight({
@@ -20,25 +21,25 @@ export default defineConfig({
         {
           label: "Getting Started",
           items: [
-            { label: "Introduction", link: "/manga/introduction" },
-            { label: "Quick Start", link: "/manga/quick-start" },
+            { label: "Introduction", link: "/manga/introduction/" },
+            { label: "Quick Start", link: "/manga/quick-start/" },
           ],
         },
         {
           label: "API Reference",
           collapsed: false,
           items: [
-            { label: "Manga List", link: "/manga/mangalist" },
-            { label: "Manga Detail", link: "/manga/singlemanga" },
-            { label: "Search", link: "/manga/search" },
-            { label: "Installation", link: "/manga/installation" },
+            { label: "Manga List", link: "/manga/mangalist/" },
+            { label: "Manga Detail", link: "/manga/singlemanga/" },
+            { label: "Search", link: "/manga/search/" },
+            { label: "Installation", link: "/manga/installation/" },
           ],
         },
         {
           label: "Guides",
           items: [
-            { label: "API Playground", link: "/playground" },
-            { label: "Hooks", link: "/manga/hooks" },
+            { label: "API Playground", link: "/playground/" },
+            { label: "Hooks", link: "/manga/hooks/" },
           ],
         },
       ],

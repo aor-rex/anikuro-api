@@ -8,8 +8,8 @@ hero:
     file: ./houston.webp
   actions:
     - text: read docs
-      link: /manga/introduction
-      icon: right-arrow
+      link: /docs/manga/introduction/
+      icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       variant: primary
     - text: github repo
       link: https://github.com/aor-rex/anikuro-api
@@ -23,7 +23,7 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
 ## about
 
 <CardGrid>
-  <Card title="api overview" icon="rocket">
+  <Card title="api overview" icon="star">
     discover manga effortlessly with our api. get a full list in one request and delve into single manga details easily.
   </Card>
 
@@ -32,7 +32,7 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
   users find their favorites effortlessly.
 </Card>
 
-  <Card title="interactive playground" icon="terminal">
+  <Card title="interactive playground" icon="code">
     test api endpoints live in your browser. search, browse, read chapters — all without writing code.
   </Card>
 </CardGrid>
