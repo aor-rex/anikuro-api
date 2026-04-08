@@ -13,14 +13,31 @@ RUN npm run build
 # ============================================
 # Stage 2: Build Manga API
 # ============================================
-FROM node:22-alpine AS api-builder
+FROM node:22-alpine AS manga-builder
 
 WORKDIR /app/manga
 COPY manga/package.json manga/package-lock.json* ./
 RUN npm install --production --frozen-lockfile
 
 # ============================================
-# Stage 3: Runtime
+# Stage 3: Build Anime API
+# ============================================
+FROM node:22-alpine AS anime-builder
+
+WORKDIR /app/anime
+COPY anime/package.json anime/package-lock.json* ./
+RUN npm install --production --frozen-lockfile
+
+# ============================================
+# Stage 4: Build Unified Server deps
+# ============================================
+FROM node:22-alpine AS unified-builder
+
+WORKDIR /app/unified
+# Unified only needs the manga and anime deps (already installed in their stages)
+
+# ============================================
+# Stage 5: Runtime
 # ============================================
 FROM node:22-alpine
 
@@ -29,11 +46,18 @@ WORKDIR /app
 # Copy built docs
 COPY --from=docs-builder /app/docs/dist ./docs/dist
 
-# Copy API
-COPY --from=api-builder /app/manga/node_modules ./manga/node_modules
+# Copy Manga API
+COPY --from=manga-builder /app/manga/node_modules ./manga/node_modules
 COPY manga/ ./manga/
 
-WORKDIR /app/manga
+# Copy Anime API
+COPY --from=anime-builder /app/anime/node_modules ./anime/node_modules
+COPY anime/ ./anime/
+
+# Copy unified server (no deps needed, just code)
+COPY unified/ ./unified/
+
+WORKDIR /app/unified
 
 # Hugging Face requires port 7860
 ENV PORT=7860

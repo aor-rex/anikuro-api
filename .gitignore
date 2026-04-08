@@ -25,3 +25,6 @@ build/
 .qwenignore.
 .gitattributes
 
+index.md
+RULE.md
+

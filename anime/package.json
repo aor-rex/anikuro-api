@@ -1,0 +1,32 @@
+{
+  "name": "pahe-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon app.js",
+    "start": "node app.js",
+    "test": "nodemon test.js"
+  },
+  "keywords": [],
+  "author": "aor-rex",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@sparticuz/chromium": "^133.0.0",
+    "axios": "^1.13.5",
+    "cheerio": "1.0.0-rc.12",
+    "cloudscraper": "^4.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "jsdom": "^22.1.0",
+    "playwright": "^1.52.0",
+    "playwright-core": "^1.52.0",
+    "playwright-extra": "^4.3.6",
+    "playwright-extra-plugin-stealth": "^0.0.1",
+    "redis": "^5.5.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
