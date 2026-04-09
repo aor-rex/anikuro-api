@@ -1,0 +1,42 @@
+---
+title: introduction
+description: overview of the anikuro api, a unified rest api gateway for manga and anime content.
+---
+
+# welcome to anikuro api
+
+anikuro api is a unified rest api gateway for both **manga** and **anime** content. it scrapes data from manga and anime websites and serves them as clean, structured json responses.
+
+## features
+
+- **manga api** — browse, search, and read manga chapters
+- **anime api** — browse, search, and stream anime episodes
+- **caching** — redis-backed response caching (optional)
+- **rate limiting** — ip-based rate limiting (optional)
+- **no api key required** — public access to all endpoints
+
+## getting started
+
+| step | description |
+| ---- | ----------- |
+| 1. search | find anime or manga by title |
+| 2. browse | explore catalog listings |
+| 3. detail | get full metadata and episode lists |
+| 4. stream/read | access streaming links or chapter content |
+
+## api structure
+
+all endpoints are mounted under `/api/` with two namespaces:
+
+| namespace | description | base url |
+| --------- | ----------- | -------- |
+| manga | manga browsing and reading | `/api/manga/` |
+| anime | anime browsing and streaming | `/api/anime/` |
+
+## base url
+
+```
+http://localhost:7860
+```
+
+> **note:** replace `http://localhost:7860` with your deployment url when hosting the api.
