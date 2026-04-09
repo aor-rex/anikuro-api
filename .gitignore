@@ -34,4 +34,4 @@ SCOPE.md
 
 test.sh
 test-server.js
-.*
+.codex
