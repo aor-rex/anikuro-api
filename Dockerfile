@@ -64,7 +64,8 @@ COPY anime/ ./anime/
 
 # Copy Unified Server (with its own deps)
 COPY --from=unified-builder /app/unified/node_modules ./unified/node_modules
-COPY unified/ ./unified/
+COPY unified/package.json unified/package-lock.json* ./unified/
+COPY unified/app.js ./unified/app.js
 
 WORKDIR /app/unified
 
