@@ -1,0 +1,94 @@
+---
+title: Anime Info
+description: Get detailed information about an anime
+---
+
+# Anime Info
+
+Get detailed information about a specific anime including relations and recommendations.
+
+## Endpoint
+
+```
+GET /api/anime/:id
+```
+
+## Path Parameters
+
+| Parameter | Type   | Required | Description         | Example  |
+|-----------|--------|----------|---------------------|----------|
+| `id`      | string | Yes      | Anime session/token | `abc123` |
+
+## Response
+
+```json
+{
+  "ids": {
+    "animepahe_id": "1",
+    "anidb": "1234",
+    "anilist": "5678",
+    "animePlanet": "one-piece",
+    "ann": "1234",
+    "kitsu": "5678",
+    "mal": "21"
+  },
+  "title": "One Piece",
+  "image": "https://i.animepahe.pw/posters/...",
+  "preview": "https://www.youtube.com/watch?v=...",
+  "synopsis": "It has been two and a half years...",
+  "synonym": "One Piece",
+  "japanese": "ワンピース",
+  "type": "TV",
+  "episodes": "1000",
+  "status": "Finished Airing",
+  "duration": "24 minutes",
+  "aired": "Oct 20, 1999 to ?",
+  "season": "Fall 1999",
+  "studio": "Toei Animation",
+  "themes": ["Adventure", "Fantasy"],
+  "demographic": ["Shounen"],
+  "external_links": [
+    {
+      "name": "AniList",
+      "url": "https://anilist.co/anime/21"
+    }
+  ],
+  "genre": ["Action", "Adventure", "Fantasy"],
+  "relations": {
+    "Prequel": [
+      {
+        "title": "One Piece: Episode of Nami",
+        "url": "/anime/abc123",
+        "session": "abc123",
+        "image": "https://i.animepahe.pw/posters/...",
+        "type": "TV",
+        "episodes": "220",
+        "status": "Finished Airing",
+        "season": "Fall 2002"
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "title": "Naruto",
+      "url": "/anime/abc456",
+      "image": "https://i.animepahe.pw/posters/...",
+      "type": "TV",
+      "episodes": "500",
+      "status": "Finished Airing",
+      "season": "Fall 2002"
+    }
+  ]
+}
+```
+
+## Examples
+
+**Get anime info:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/abc123"
+```
+
+## Cache Duration
+
+24 hours (86400 seconds)

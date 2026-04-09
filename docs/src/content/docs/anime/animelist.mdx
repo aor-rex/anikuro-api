@@ -1,0 +1,79 @@
+---
+title: Anime List
+description: Browse the anime catalog
+---
+
+# Anime List
+
+Browse the complete anime catalog with filtering options.
+
+## Endpoint
+
+```
+GET /api/anime/list
+```
+
+## Query Parameters
+
+| Parameter | Type   | Required | Description                    | Example          |
+|-----------|--------|----------|--------------------------------|------------------|
+| `page`    | number | No       | Page number (default: 1)       | `?page=2`        |
+| `tab`     | string | No       | Filter by first letter (A-Z)   | `?tab=A`         |
+| `genre`   | string | No       | Filter by genre                | `?genre=action`  |
+
+## Response
+
+```json
+{
+  "paginationInfo": {
+    "total": 15000,
+    "perPage": 30,
+    "currentPage": 1,
+    "lastPage": 500,
+    "nextPageUrl": "https://aor-rex-anikuro-api.hf.space/api/anime/list?page=2",
+    "from": 1,
+    "to": 30
+  },
+  "data": [
+    {
+      "id": 1,
+      "title": "One Piece",
+      "status": "Currently Airing",
+      "type": "TV",
+      "episodes": 1000,
+      "score": 8.5,
+      "year": 1999,
+      "season": "Fall",
+      "poster": "https://i.animepahe.pw/posters/...",
+      "session": "abc123...",
+      "link": "/api/anime/abc123..."
+    }
+  ]
+}
+```
+
+## Examples
+
+**Browse all anime:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/list"
+```
+
+**Filter by letter:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/list?tab=A"
+```
+
+**Filter by genre:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/list?genre=action"
+```
+
+**Paginate:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/list?page=2"
+```
+
+## Cache Duration
+
+5 hours (18000 seconds)

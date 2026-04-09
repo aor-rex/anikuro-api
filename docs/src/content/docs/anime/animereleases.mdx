@@ -1,0 +1,77 @@
+---
+title: Anime Releases
+description: Get the episode list for an anime
+---
+
+# Anime Releases
+
+Get the complete episode list for a specific anime with pagination and sorting.
+
+## Endpoint
+
+```
+GET /api/anime/:id/releases
+```
+
+## Path Parameters
+
+| Parameter | Type   | Required | Description         | Example  |
+|-----------|--------|----------|---------------------|----------|
+| `id`      | string | Yes      | Anime session/token | `abc123` |
+
+## Query Parameters
+
+| Parameter | Type   | Required | Description                    | Example              |
+|-----------|--------|----------|--------------------------------|----------------------|
+| `sort`    | string | No       | Sort order (`desc` or `asc`)   | `?sort=episode_desc` |
+| `page`    | number | No       | Page number (default: 1)       | `?page=2`            |
+
+## Response
+
+```json
+{
+  "paginationInfo": {
+    "total": 500,
+    "perPage": 30,
+    "currentPage": 1,
+    "lastPage": 17,
+    "nextPageUrl": "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/releases?page=2",
+    "from": 1,
+    "to": 30
+  },
+  "data": [
+    {
+      "id": 707,
+      "anime_id": 1,
+      "episode": 500,
+      "episode2": null,
+      "edition": null,
+      "title": null,
+      "snapshot": "https://i.animepahe.pw/snapshots/...",
+      "disc": null,
+      "audio": "jpn",
+      "duration": "00:23:14",
+      "session": "abc123...",
+      "link": "/api/anime/abc123/abc123",
+      "filler": null,
+      "created_at": "2021-08-16 00:41:48"
+    }
+  ]
+}
+```
+
+## Examples
+
+**Get episode list (descending):**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/releases?sort=episode_desc"
+```
+
+**Paginate episodes:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/releases?page=2"
+```
+
+## Cache Duration
+
+24 hours (86400 seconds)

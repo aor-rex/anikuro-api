@@ -1,0 +1,75 @@
+---
+title: Anime Streaming
+description: Get streaming links for an anime episode
+---
+
+# Anime Streaming
+
+Get streaming links and metadata for a specific anime episode.
+
+## Endpoint
+
+```
+GET /api/anime/:id/:ep
+```
+
+## Path Parameters
+
+| Parameter | Type   | Required | Description                | Example    |
+|-----------|--------|----------|----------------------------|------------|
+| `id`      | string | Yes      | Anime session/token        | `abc123`   |
+| `ep`      | string | Yes      | Episode session/token      | `ep456`    |
+
+## Query Parameters
+
+| Parameter   | Type    | Required | Description                              | Example           |
+|-------------|---------|----------|------------------------------------------|-------------------|
+| `downloads` | boolean | No       | Include download links (default: `true`) | `?downloads=false`|
+
+## Response
+
+```json
+{
+  "sources": [
+    {
+      "source": "kwik",
+      "resolution": "1080p",
+      "size": "250MB",
+      "type": "stream",
+      "url": "https://kwik.cx/...",
+      "download": "https://kwik.cx/..."
+    }
+  ],
+  "episode": {
+    "id": 707,
+    "anime_id": 1,
+    "episode": 500,
+    "duration": "00:23:14",
+    "audio": "jpn",
+    "filler": null,
+    "created_at": "2021-08-16 00:41:48"
+  }
+}
+```
+
+## Examples
+
+**Get streaming links:**
+```bash
+get "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/ep456"
+```
+
+**Without download links:**
+```bash
+curl "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/ep456?downloads=false"
+```
+
+## Cache Duration
+
+1 hour (3600 seconds)
+
+## Notes
+
+- The `/api/anime/download-links?url=` endpoint is **deprecated** due to Cloudflare protection on kwik.cx
+- Download URLs are included in the `sources[].download` field of this endpoint
+- The `sources` array may contain multiple resolutions (360p, 720p, 1080p)

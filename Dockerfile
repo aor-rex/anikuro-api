@@ -22,7 +22,7 @@ RUN npm install --production --frozen-lockfile
 # ============================================
 # Stage 3: Build Anime API
 # ============================================
-FROM node:22-alpine AS anime-builder
+FROM node:22-slim AS anime-builder
 
 WORKDIR /app/anime
 COPY anime/package.json anime/package-lock.json* ./
@@ -34,14 +34,22 @@ RUN npm install --production --frozen-lockfile
 FROM node:22-alpine AS unified-builder
 
 WORKDIR /app/unified
-# Unified only needs the manga and anime deps (already installed in their stages)
+COPY unified/package.json unified/package-lock.json* ./
+RUN npm install --production --frozen-lockfile
 
 # ============================================
 # Stage 5: Runtime
 # ============================================
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /app
+
+# Install Playwright system dependencies (required for Chromium)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+    libpango-1.0-0 libcairo2 libasound2 libxshmfence1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy built docs
 COPY --from=docs-builder /app/docs/dist ./docs/dist
@@ -54,7 +62,8 @@ COPY manga/ ./manga/
 COPY --from=anime-builder /app/anime/node_modules ./anime/node_modules
 COPY anime/ ./anime/
 
-# Copy unified server (no deps needed, just code)
+# Copy Unified Server (with its own deps)
+COPY --from=unified-builder /app/unified/node_modules ./unified/node_modules
 COPY unified/ ./unified/
 
 WORKDIR /app/unified
