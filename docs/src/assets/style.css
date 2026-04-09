@@ -399,3 +399,191 @@ main::before {
   background-size: 24px 24px;
   pointer-events: none;
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  /* ── Hide right sidebar (TOC) on mobile ── */
+  .right-sidebar {
+    display: none;
+  }
+
+  /* ── Sidebar as slide-out drawer ── */
+  .sidebar-pane {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 1000;
+    background: var(--sl-color-black);
+    border-right: 2px solid var(--sl-color-gray-5);
+    border-bottom: none;
+    padding-top: 3.5rem;
+    padding-bottom: 2rem;
+    transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Starlight opens sidebar via details[open] */
+  details[open] > .sidebar-pane,
+  details[open] .sidebar-pane,
+  .sidebar-pane[open] {
+    left: 0;
+  }
+
+  /* ── Backdrop overlay ── */
+  .sidebar-pane::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: -1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  details[open] > .sidebar-pane::after,
+  details[open] .sidebar-pane::after {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── Hamburger toggle styling ── */
+  button[aria-controls="starlight__sidebar"],
+  summary.mobile-sidebar-toggle {
+    background: transparent !important;
+    border: 1px solid var(--sl-color-gray-5) !important;
+    border-radius: 6px !important;
+    color: var(--sl-color-white) !important;
+    padding: 0.3rem 0.5rem !important;
+    font-size: 1.15rem !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button[aria-controls="starlight__sidebar"]:hover,
+  summary.mobile-sidebar-toggle:hover {
+    border-color: #cc0000 !important;
+    color: #ff3333 !important;
+    background: rgba(204, 0, 0, 0.1) !important;
+    box-shadow: 0 0 8px rgba(204, 0, 0, 0.15);
+  }
+
+  /* ── Main content takes full width ── */
+  main {
+    width: 100% !important;
+    padding: 1rem 0.75rem !important;
+  }
+
+  /* ── Shrink navbar ── */
+  .header > :first-child {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .site-title {
+    font-size: 0.85rem;
+  }
+
+  /* ── Responsive tables ── */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.8rem;
+  }
+
+  /* ── Responsive code blocks ── */
+  .expressive-code {
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+  .expressive-code pre {
+    font-size: 0.75rem !important;
+  }
+
+  /* ── Shrink hero ── */
+  .hero {
+    padding: 2rem 1rem !important;
+  }
+  .hero h1 {
+    font-size: 1.5rem !important;
+  }
+  .hero p {
+    font-size: 0.9rem !important;
+  }
+
+  /* ── Stack hero buttons ── */
+  .hero .sl-link-button {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Responsive cards ── */
+  .sl-card {
+    padding: 0.75rem !important;
+  }
+
+  /* ── Shrink headings ── */
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  h2 {
+    font-size: 1.2rem !important;
+  }
+  h3 {
+    font-size: 1rem !important;
+  }
+
+  /* ── Responsive blockquotes ── */
+  blockquote {
+    padding: 0.5rem 0.75rem;
+    margin: 0.5rem 0;
+  }
+
+  /* ── Responsive asides ── */
+  .starlight-aside {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* ── Extra small screens ── */
+  .site-title {
+    font-size: 0.75rem;
+  }
+  .hero h1 {
+    font-size: 1.2rem !important;
+  }
+  .hero p {
+    font-size: 0.8rem !important;
+  }
+  main {
+    padding: 0.75rem 0.4rem !important;
+  }
+  table {
+    font-size: 0.7rem;
+  }
+  th, td {
+    padding: 0.35rem 0.4rem;
+  }
+  .expressive-code pre {
+    font-size: 0.65rem !important;
+  }
+  code:not(.expressive-code code) {
+    font-size: 0.7em;
+    padding: 0.05rem 0.2rem;
+  }
+  .sidebar-pane {
+    width: 85%;
+    max-width: 280px;
+  }
+}

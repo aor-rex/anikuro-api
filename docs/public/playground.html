@@ -349,13 +349,183 @@
         justify-content: center;
         margin-bottom: 1rem;
       }
+
+      /* ── Mobile Responsiveness ── */
+      @media (max-width: 768px) {
+        .header {
+          padding: 0.5rem 1rem;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          position: relative;
+        }
+        .header h1 {
+          font-size: 0.85rem;
+        }
+
+        /* ── Hamburger toggle ── */
+        .menu-toggle {
+          display: block;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          color: var(--text);
+          font-size: 1.2rem;
+          padding: 0.25rem 0.6rem;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          line-height: 1;
+        }
+        .menu-toggle:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+          background: rgba(204, 0, 0, 0.1);
+        }
+
+        /* ── Backdrop overlay ── */
+        .menu-backdrop {
+          display: block;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          z-index: 998;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.3s ease;
+        }
+        .menu-backdrop.active {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .container {
+          flex-direction: row;
+          padding: 0.75rem 0.5rem;
+          gap: 0.5rem;
+        }
+
+        /* ── Sidebar as slide-out drawer ── */
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: -100%;
+          width: 80%;
+          max-width: 280px;
+          height: 100vh;
+          height: 100dvh;
+          z-index: 999;
+          background: var(--bg);
+          border-right: 2px solid var(--border);
+          border-bottom: none;
+          padding-top: 3.5rem;
+          padding-bottom: 2rem;
+          overflow-y: auto;
+          transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .sidebar.open {
+          left: 0;
+        }
+        .sidebar button {
+          width: 100%;
+          text-align: left;
+          padding: 0.75rem 1rem;
+        }
+
+        .main-content {
+          width: 100% !important;
+        }
+        .endpoint-card {
+          padding: 0.75rem;
+        }
+        .endpoint-card h3 {
+          font-size: 0.9rem;
+        }
+        .resp-area {
+          font-size: 0.7rem;
+          overflow-x: auto;
+          white-space: pre-wrap;
+          word-break: break-all;
+        }
+        .manga-grid {
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 0.5rem;
+        }
+        .manga-card .title {
+          font-size: 0.75rem;
+        }
+        .detail-header {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .detail-cover {
+          width: 120px;
+        }
+        .detail-meta h2 {
+          font-size: 1rem;
+        }
+        .chapter-list {
+          max-height: 250px;
+        }
+        .base-url-bar {
+          padding: 0.5rem !important;
+        }
+        .base-url-bar input {
+          font-size: 0.8rem !important;
+          padding: 6px 8px !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header {
+          padding: 0.4rem 0.75rem;
+        }
+        .header h1 {
+          font-size: 0.75rem;
+        }
+        .tag {
+          font-size: 0.6rem;
+          padding: 1px 5px;
+        }
+        .menu-toggle {
+          font-size: 1rem;
+          padding: 0.2rem 0.5rem;
+        }
+        .container {
+          padding: 0.5rem 0.25rem;
+        }
+        .endpoint-card {
+          padding: 0.5rem;
+        }
+        .endpoint-card h3 {
+          font-size: 0.8rem;
+        }
+        .manga-grid {
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+        .resp-area {
+          font-size: 0.65rem;
+        }
+        .detail-cover {
+          width: 100px;
+        }
+        .sidebar {
+          width: 85%;
+          max-width: 260px;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="header">
       <h1>anikuro api playground</h1>
       <span class="tag">interactive</span>
+      <!-- Hamburger toggle for mobile -->
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" onclick="toggleMenu()">☰</button>
     </div>
+
+    <!-- Backdrop overlay for mobile -->
+    <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
 
     <div
       class="base-url-bar"
@@ -365,13 +535,13 @@
       <input
         type="text"
         id="baseUrl"
-        value="https://aor-rex-anikuro-api.hf.space"
+        value="http://localhost:7860"
         placeholder="enter base url"
       />
     </div>
 
     <div class="container">
-      <div class="sidebar">
+      <div class="sidebar" id="sidebar">
         <span
           style="
             display: block;
@@ -771,6 +941,30 @@
           .forEach((b) => b.classList.remove("active"));
         document.getElementById("panel-" + name).classList.add("active");
         if (btn) btn.classList.add("active");
+
+        // Close sidebar on mobile after selecting an endpoint
+        if (window.innerWidth <= 768) {
+          closeMenu();
+        }
+      }
+
+      /* ── Mobile menu toggle ── */
+      function toggleMenu() {
+        var sidebar = document.getElementById("sidebar");
+        var backdrop = document.getElementById("menuBackdrop");
+        var toggle = document.getElementById("menuToggle");
+        sidebar.classList.toggle("open");
+        backdrop.classList.toggle("active");
+        toggle.textContent = sidebar.classList.contains("open") ? "✕" : "☰";
+      }
+
+      function closeMenu() {
+        var sidebar = document.getElementById("sidebar");
+        var backdrop = document.getElementById("menuBackdrop");
+        var toggle = document.getElementById("menuToggle");
+        sidebar.classList.remove("open");
+        backdrop.classList.remove("active");
+        toggle.textContent = "☰";
       }
       function statusHTML(ok, status, time) {
         return (
@@ -796,7 +990,7 @@
           msg +=
             "<br><br><strong>💡 Tip:</strong> Make sure the server is running locally:<br>" +
             "<code style='color:#22c55e'>cd unified && npm start</code><br><br>" +
-            "Or change base URL to: <code style='color:#22c55e'>https://aor-rex-anikuro-api.hf.space</code>";
+            "Or change base URL to: <code style='color:#22c55e'>http://localhost:7860</code>";
         } else if (
           msg.indexOf("Unexpected token") !== -1 ||
           msg.indexOf("JSON.parse") !== -1

@@ -3,19 +3,29 @@ title: manga detail
 description: unlock detailed insights into specific manga and chapters with the manga detail api endpoints.
 ---
 
-#### endpoint: `/api/manga/:id`
+# Manga Detail
 
-the `/api/manga/:id` endpoint provides detailed information about a specific manga. use the manga id obtained from the manga list endpoint to access manga details.
+Get detailed information about a specific manga including its chapter list.
 
-note: the `:id` is the slug from the manga list response (e.g., `attack-on-titan`).
+## Get Manga Details
 
-#### example
-
-```http
-get /api/manga/attack-on-titan
+```
+GET /api/manga/:id
 ```
 
-#### response
+### Path Parameters
+
+| Parameter | Type   | Required | Description                              | Example               |
+| --------- | ------ | -------- | ---------------------------------------- | --------------------- |
+| `id`      | string | Yes      | Manga slug from the manga list response  | `attack-on-titan`     |
+
+### Example
+
+```bash
+curl "http://localhost:7860/api/manga/attack-on-titan"
+```
+
+### Response
 
 ```json
 {
@@ -37,19 +47,28 @@ get /api/manga/attack-on-titan
 }
 ```
 
-## get chapter details
+---
 
-#### endpoint: `/api/manga/:id/:ch`
+## Get Chapter Images
 
-the `/api/manga/:id/:ch` endpoint provides details about a specific chapter of a manga. use the manga id and chapter id obtained from the manga details endpoint to access chapter details.
-
-#### example
-
-```http
-get /api/manga/attack-on-titan/chapter-139
+```
+GET /api/manga/:id/:ch
 ```
 
-#### response
+### Path Parameters
+
+| Parameter | Type   | Required | Description                              | Example                          |
+| --------- | ------ | -------- | ---------------------------------------- | -------------------------------- |
+| `id`      | string | Yes      | Manga slug from the manga list response  | `attack-on-titan`                |
+| `ch`      | string | Yes      | Chapter slug from the chapter list       | `chapter-139`                    |
+
+### Example
+
+```bash
+curl "http://localhost:7860/api/manga/attack-on-titan/chapter-139"
+```
+
+### Response
 
 ```json
 {
@@ -78,9 +97,9 @@ get /api/manga/attack-on-titan/chapter-139
 }
 ```
 
-## notes
+## Notes
 
-- the `:id` parameter in the endpoint represents the unique path slug for a specific manga (from the manga list response).
-- the `:ch` parameter represents the unique path slug for a specific chapter.
-- the response provides detailed information about the manga, including its status, genres, and a list of chapters.
-- chapter details include the chapter title, list of chapter ids for navigation, and links to individual chapter images.
+- The `:id` parameter represents the unique path slug for a specific manga (from the manga list response).
+- The `:ch` parameter represents the unique path slug for a specific chapter.
+- The response provides detailed information about the manga, including its status, genres, and a list of chapters.
+- Chapter details include the chapter title, list of chapter ids for navigation, and links to individual chapter images.

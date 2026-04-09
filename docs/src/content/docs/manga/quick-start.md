@@ -13,12 +13,12 @@ open your terminal and run the following command to clone the anikuro api reposi
 git clone https://github.com/aor-rex/anikuro-api
 ```
 
-### 2. navigate to the manga directory
+### 2. navigate to the unified directory
 
-change your working directory to the manga folder:
+change your working directory to the unified folder:
 
 ```bash
-cd manga
+cd anikuro-api/unified
 ```
 
 ### 3. install dependencies
@@ -37,7 +37,7 @@ launch the anikuro api server by running the following command:
 npm start
 ```
 
-this will start the server on port 3000.
+this will start the server on port 7860.
 
 ## try an endpoint
 
@@ -45,8 +45,14 @@ now that anikuro api is running, let's test it. make a get request to the manga 
 
 - **endpoint:**
 
-  ```http
-  get /api/manga/list
+  ```
+  GET /api/manga/list
+  ```
+
+- **example:**
+
+  ```bash
+  curl "http://localhost:7860/api/manga/list"
   ```
 
 - **example response:**
@@ -108,4 +114,4 @@ interface MangaList {
 }
 ```
 
-now you're ready to explore and integrate anikuro api into your projects. feel free to use the provided api endpoints to access manga data and enhance your manga-related applications!
+now you're ready to explore and integrate anikuro api into your projects. feel free to use the provided api endpoints to access manga and anime data and enhance your applications!

@@ -22,10 +22,16 @@ dist/
 build/
 .venv
 .qwen
-.qwenignore.
+.qwenignore
 .gitattributes
-.
 
+ANIME_API_BLUEPRINT.md
 index.md
 RULE.md
+SERVE_TIME.md
+STREAMING_INVESTIGATION.md
+SCOPE.md
 
+test.sh
+test-server.js
+.*

@@ -1,26 +1,28 @@
 ---
 title: manga list
-description: fetch a comprehensive list of manga with associated metadata using the /api/manga/list endpoint.
+description: fetch a comprehensive list of manga with associated metadata using the GET /api/manga/list endpoint.
 ---
 
-#### endpoint: `/api/manga/list`
+# Manga List
 
-the `/api/manga/list` endpoint provides a list of manga with associated metadata. follow the steps below to make a request and understand the response.
+Fetch a comprehensive list of manga with associated metadata.
 
-## simple fetch
+## Endpoint
 
-use your preferred api testing tool or any http client library to make a get request to the following endpoint:
-
-- **method:** get
-- **endpoint:** `https://localhost:3000/`
-
-##### example
-
-```http
-get /api/manga/list
+```
+GET /api/manga/list
 ```
 
-##### response
+## Query Parameters
+
+| Parameter  | Type   | Required | Description                         | Example                   |
+| ---------- | ------ | -------- | ----------------------------------- | ------------------------- |
+| `page`     | number | No       | Page number (default: 1)            | `?page=2`                 |
+| `category` | string | No       | Filter by category (e.g., `action`) | `?category=action`        |
+| `type`     | string | No       | Filter by type (e.g., `latest`)     | `?type=latest`            |
+| `state`    | string | No       | Filter by state (e.g., `ongoing`)   | `?state=ongoing`          |
+
+## Response
 
 ```json
 {
@@ -47,32 +49,33 @@ get /api/manga/list
     "category": [
       { "id": "all", "name": "all" },
       { "id": "action", "name": "Action" },
-      { "id": "adventure", "name": "Adventure" },
-      { "id": "comedy", "name": "Comedy" },
-      { "id": "drama", "name": "Drama" },
-      { "id": "fantasy", "name": "Fantasy" },
-      { "id": "romance", "name": "Romance" }
+      { "id": "adventure", "name": "Adventure" }
     ]
   }
 }
 ```
 
-## explore pagination (optional)
+## Examples
 
-##### query parameter: `page`
+**Browse all manga:**
 
-- to fetch a specific page, use the `page` query parameter.
-- example: `https://localhost:3000/api/manga/list?page=2`
+```bash
+curl "http://localhost:7860/api/manga/list"
+```
 
-## filter by manga category (optional)
+**Filter by category:**
 
-##### query parameter: `category`
+```bash
+curl "http://localhost:7860/api/manga/list?category=action"
+```
 
-- filter manga by category using the `category` query parameter.
-- possible values: `all`, `action`, `adventure`, `comedy`, `drama`, `fantasy`, `romance`, and more.
-- example: `https://localhost:3000/api/manga/list?category=action`
+**Paginate:**
 
-## response structure
+```bash
+curl "http://localhost:7860/api/manga/list?page=2"
+```
+
+## Response Structure
 
 ```typescript
 interface MangaList {
@@ -91,3 +94,7 @@ interface MangaList {
   };
 }
 ```
+
+## Cache Duration
+
+30 seconds

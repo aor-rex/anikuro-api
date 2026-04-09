@@ -55,13 +55,15 @@ GET /api/anime/:id/:ep
 ## Examples
 
 **Get streaming links:**
+
 ```bash
-get "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/ep456"
+curl "http://localhost:7860/api/anime/abc123/ep456"
 ```
 
 **Without download links:**
+
 ```bash
-curl "https://aor-rex-anikuro-api.hf.space/api/anime/abc123/ep456?downloads=false"
+curl "http://localhost:7860/api/anime/abc123/ep456?downloads=false"
 ```
 
 ## Cache Duration

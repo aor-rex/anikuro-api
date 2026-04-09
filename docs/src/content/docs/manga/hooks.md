@@ -9,7 +9,7 @@ anikuro api provides a set of custom hooks to simplify the integration into next
 
 ### purpose
 
-this hook is designed to fetch a list of manga titles with associated metadata using the `/api/manga/list` endpoint.
+this hook is designed to fetch a list of manga titles with associated metadata using the `GET /api/manga/list` endpoint.
 
 ### parameters
 
@@ -30,7 +30,7 @@ const ExampleComponent = async () => {
 
 ### purpose
 
-this hook fetches detailed information about a specific manga using the `/api/manga/:id` endpoint.
+this hook fetches detailed information about a specific manga using the `GET /api/manga/:id` endpoint.
 
 ### parameters
 
@@ -51,7 +51,7 @@ const ExampleComponent = async () => {
 
 ### purpose
 
-this hook fetches details about a specific chapter of a manga using the `/api/manga/:id/:ch` endpoint.
+this hook fetches details about a specific chapter of a manga using the `GET /api/manga/:id/:ch` endpoint.
 
 ### parameters
 
@@ -74,7 +74,7 @@ const ExampleComponent = async () => {
 
 ### purpose
 
-this hook allows users to search for manga titles using the `/api/manga/search/:query` endpoint.
+this hook allows users to search for manga titles using the `GET /api/manga/search/:query` endpoint.
 
 ### parameters
 

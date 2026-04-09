@@ -1,19 +1,31 @@
 ---
 title: search
-description: refine your manga discovery with the search api endpoint /api/manga/search/:query.
+description: search for manga titles using the GET /api/manga/search/:query endpoint.
 ---
 
-#### endpoint: `/api/manga/search/:query`
+# Search Manga
 
-the `/api/manga/search/:query` endpoint allows you to search for manga based on a specific query. use this endpoint to discover manga titles related to your search.
+Search for manga titles based on a query string.
 
-#### example
+## Endpoint
 
-```http
-get /api/manga/search/attack%20on%20titan?page=1
+```
+GET /api/manga/search/:query
 ```
 
-#### response
+## Path Parameters
+
+| Parameter | Type   | Required | Description           | Example               |
+| --------- | ------ | -------- | --------------------- | --------------------- |
+| `query`   | string | Yes      | Search query (URL-encoded) | `attack%20on%20titan` |
+
+## Query Parameters
+
+| Parameter | Type   | Required | Description                    | Example         |
+| --------- | ------ | -------- | ------------------------------ | --------------- |
+| `page`    | number | No       | Page number (default: 1)       | `?page=2`       |
+
+## Response
 
 ```json
 {
@@ -27,11 +39,6 @@ get /api/manga/search/attack%20on%20titan?page=1
       "id": "/manga/attack-on-titan-anthology",
       "image": "https://mangabuddy.com/image/anthology.jpg",
       "title": "Attack On Titan Anthology"
-    },
-    {
-      "id": "/manga/attack-on-titan-junior-high",
-      "image": "https://mangabuddy.com/image/junior-high.jpg",
-      "title": "Attack On Titan: Junior High"
     }
   ],
   "metaData": {
@@ -40,10 +47,22 @@ get /api/manga/search/attack%20on%20titan?page=1
 }
 ```
 
-### notes
+## Examples
 
-- the `:query` parameter in the endpoint represents the search query. make sure to url-encode the query string properly.
-- use the `page` query parameter to navigate through different pages of the search results.
-- the response includes a list of manga entries with their respective ids, images, and titles.
-- the `metaData` section provides information about the total number of pages available for the search results.
-- search results are cached for 3 minutes to improve performance.
+**Search manga:**
+
+```bash
+curl "http://localhost:7860/api/manga/search/attack%20on%20titan"
+```
+
+**Paginate results:**
+
+```bash
+curl "http://localhost:7860/api/manga/search/one+piece?page=2"
+```
+
+## Notes
+
+- The `:query` parameter must be URL-encoded.
+- Use the `page` query parameter to navigate through search result pages.
+- Search results are cached for 3 minutes to improve performance.
