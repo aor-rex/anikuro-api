@@ -23,7 +23,7 @@ build/
 .venv
 .qwen
 .qwenignore
-.gitattributes
+
 
 ANIME_API_BLUEPRINT.md
 index.md

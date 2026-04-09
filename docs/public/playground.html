@@ -62,6 +62,13 @@
         width: 160px;
         flex-shrink: 0;
       }
+      /* Hide hamburger on desktop */
+      .menu-toggle {
+        display: none;
+      }
+      .menu-backdrop {
+        display: none;
+      }
       .sidebar button {
         display: block;
         width: 100%;
@@ -535,8 +542,8 @@
       <input
         type="text"
         id="baseUrl"
-        value="http://localhost:7860"
-        placeholder="enter base url"
+        value=""
+        placeholder="detecting base url..."
       />
     </div>
 
@@ -1801,6 +1808,23 @@
 
       /* initial load */
       fetchList();
+
+      /* ── Auto-detect base URL ── */
+      (function setBaseUrl() {
+        var input = document.getElementById("baseUrl");
+        if (!input) return;
+        var host = window.location.hostname;
+        var port = window.location.port;
+        if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
+          input.value = "http://localhost:" + (port || "7860");
+        } else if (host && host !== "") {
+          input.value = window.location.protocol + "//" + host + (port ? ":" + port : "");
+        } else {
+          input.value = "http://localhost:7860";
+        }
+        // Update placeholder to reflect current host
+        input.placeholder = "e.g., " + input.value;
+      })();
     </script>
   </body>
 </html>
