@@ -244,25 +244,25 @@ async function getKwikDownloadUrl(url) {
           );
           if (tokenMatch) foundToken = tokenMatch[1];
           if (el) el.innerHTML = htmlStr;
-          return this;
+          return $;
         }
         return el?.innerHTML || "";
       },
       attr: (n, v) =>
         v !== undefined
-          ? (el?.setAttribute(n, v), this)
+          ? (el?.setAttribute(n, v), $)
           : el?.getAttribute(n) || "",
       click: (fn) => {
         if (typeof fn === "function")
           try {
             fn.call(el);
           } catch (e) {}
-        return this;
+        return $;
       },
-      on: () => this,
+      on: () => $,
       remove: () => {
         el?.remove();
-        return this;
+        return $;
       },
       length: els.length,
     };
@@ -295,7 +295,7 @@ async function getKwikDownloadUrl(url) {
   for (const s of scripts) {
     if (s && s.length > 100) {
       try {
-        vm.runInContext(s, vm.createContext(sandbox), { timeout: 4000 });
+        vm.runInNewContext(s, sandbox, { timeout: 4000 });
         if (foundAction && foundToken) break;
       } catch (e) {}
     }
@@ -579,7 +579,7 @@ async function resolveKwik(url) {
     // Run script and also try to unwrap one level of nested evals if found
     try {
       // Run once
-      vm.runInContext(script, sandbox, { timeout: 2000 });
+      vm.runInNewContext(script, sandbox, { timeout: 2000 });
     } catch (err) {
       console.log("Eval failed:", err && err.message);
     }
@@ -602,7 +602,7 @@ async function resolveKwik(url) {
     for (const body of innerEvalBodies) {
       try {
         // attempt to run inner body directly
-        vm.runInContext(body, sandbox, { timeout: 1500 });
+        vm.runInNewContext(body, sandbox, { timeout: 1500 });
       } catch (err) {
         // ignore errors: many packed scripts expect DOM APIs we stubbed
       }

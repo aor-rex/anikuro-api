@@ -5,9 +5,18 @@ const cors = require("cors");
 const path = require("path");
 const requestId = require("../manga/middleware/requestIdMiddleware");
 
-// ─── Anime imports ───
+// Add manga node_modules to the module search path
+const mangaPath = path.join(__dirname, "..", "manga");
+module.paths.unshift(path.join(mangaPath, "node_modules"));
+
+// Add anime node_modules
+const animePath = path.join(__dirname, "..", "anime");
+module.paths.unshift(path.join(animePath, "node_modules"));
 const animeApp = require("../anime/app");
-const { errorHandler, CustomError } = require("../anime/middleware/errorHandler");
+const {
+  errorHandler,
+  CustomError,
+} = require("../anime/middleware/errorHandler");
 
 // ─── Manga imports ───
 const mangaRouter = require("../manga/routes/mangaRouter");
@@ -51,6 +60,128 @@ app.use("/api/manga", mangaRouter);
 // ─── Anime routes (/api/anime/*) ───
 // The anime app exports an Express app, mount it as a router
 app.use("/api/anime", animeApp);
+
+// ─── Download Proxy (/api/anime/download-proxy?url=...) ───
+// Uses Playwright to bypass Cloudflare on CDN and stream file to client
+app.get("/api/anime/download-proxy", async (req, res) => {
+  const { url } = req.query;
+
+  if (!url || !url.startsWith("https://")) {
+    return res.status(400).json({ error: "Valid URL required" });
+  }
+
+  const DOWNLOAD_TIMEOUT = 120000; // 120s hard timeout
+  let browser = null;
+
+  try {
+    console.log(
+      `[Download Proxy] Solving Cloudflare for: ${url.substring(0, 80)}...`,
+    );
+    const start = Date.now();
+
+    const { chromium } = require("playwright");
+
+    // Wrap entire operation with global timeout
+    await Promise.race([
+      (async () => {
+        browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+
+        // Navigate to CDN URL (Playwright solves Cloudflare)
+        const response = await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+
+        // Poll for CF challenge completion instead of fixed wait
+        try {
+          await page.waitForFunction(
+            () => {
+              return (
+                !document.title.toLowerCase().includes("just a moment") &&
+                !document.title.toLowerCase().includes("please wait") &&
+                !window.location.href.includes("cdn-cgi/challenge")
+              );
+            },
+            { timeout: 30000 },
+          );
+        } catch {
+          console.log("[Download Proxy] CF poll timed out, proceeding anyway");
+        }
+
+        // Check if still on CF challenge page
+        const currentUrl = page.url();
+        if (currentUrl.includes("cdn-cgi/challenge")) {
+          return res.status(502).json({
+            error: "Cloudflare challenge not solved",
+            message: "CDN protection too strong. Try another episode.",
+          });
+        }
+
+        // Check if we got the actual file (not HTML error page)
+        const contentType = await page.evaluate(() => document.contentType);
+        if (contentType === "text/html") {
+          // Might still be an HTML page with file content or error
+          const pageText = await page.evaluate(() => document.body.innerText.substring(0, 200));
+          if (pageText.toLowerCase().includes("just a moment") || pageText.toLowerCase().includes("error")) {
+            return res.status(502).json({
+              error: "Download page returned HTML error",
+              message: pageText.substring(0, 200),
+            });
+          }
+        }
+
+        console.log("[Download Proxy] CF solved, streaming file to client...");
+
+        // Get response headers from the navigation
+        const headers = response.headers();
+        const contentLength = headers["content-length"] || headers["content-length"];
+
+        // Extract filename from Content-Disposition header or URL path
+        const contentDisposition = headers["content-disposition"] || "";
+        const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+        const filename = filenameMatch?.[1] || url.split("/").pop()?.split("?")[0] || "download.mp4";
+
+        // Detect content type from response
+        const mimeType = headers["content-type"] || "application/octet-stream";
+
+        // Set response headers
+        res.setHeader("Content-Type", mimeType);
+        res.setHeader("Content-Disposition", `attachment; filename="${decodeURIComponent(filename)}"`);
+        if (contentLength) {
+          res.setHeader("Content-Length", contentLength);
+        }
+        res.setHeader("Cache-Control", "public, max-age=3600");
+
+        // Stream the response body directly to client
+        const responseBody = await response.body();
+        const elapsed = Date.now() - start;
+        const sizeMB = (responseBody.length / 1024 / 1024).toFixed(1);
+        console.log(
+          `[Download Proxy] ✅ Streamed ${sizeMB} MB in ${(elapsed / 1000).toFixed(1)}s`,
+        );
+
+        res.end(responseBody);
+      })(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Download proxy timed out")), DOWNLOAD_TIMEOUT),
+      ),
+    ]);
+  } catch (error) {
+    console.error(`[Download Proxy] Error:`, error.message);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "Download failed",
+        message: error.message,
+      });
+    }
+  } finally {
+    // Always close the browser, even if an error occurred
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+  }
+});
 
 // ─── Static docs ───
 const docsPath = path.join(__dirname, "..", "docs", "dist");
@@ -132,11 +263,13 @@ process.on("unhandledRejection", (reason, promise) => {
     "reason:",
     reason?.message || reason,
   );
+  // Don't exit — log and keep running
 });
 
 process.on("uncaughtException", (error) => {
-  console.error(`[FATAL] Uncaught exception:`, error.message);
-  setTimeout(() => process.exit(1), 1000);
+  console.error(`[FATAL] Uncaught exception:`, error.message, error.stack);
+  // Don't exit — log and keep serving requests
+  // setTimeout(() => process.exit(1), 1000);
 });
 
 process.on("SIGTERM", () => {

@@ -393,6 +393,7 @@ class PlayModel {
     static async processHybridOptimized(id, episodeId, items) {
         const results = [];
         const seenUrls = new Set();
+        const IFRAME_TIMEOUT = 20000; // 20 seconds per iframe
 
         const uniqueItems = items.filter(item => {
             if (seenUrls.has(item.url)) {
@@ -413,13 +414,19 @@ class PlayModel {
         const maxParallel = 3;
         for (let i = 0; i < uniqueItems.length; i += maxParallel) {
             const batch = uniqueItems.slice(i, i + maxParallel);
-            
+
             console.log(`Processing batch ${Math.floor(i / maxParallel) + 1}/${Math.ceil(uniqueItems.length / maxParallel)} with ${batch.length} items...`);
-            
+
             const batchPromises = batch.map(async (data) => {
+                // Wrap each iframe scrape with a timeout
+                const scrapePromise = Animepahe.scrapeIframe(id, episodeId, data.url);
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error(`Iframe fetch timed out after ${IFRAME_TIMEOUT / 1000}s`)), IFRAME_TIMEOUT);
+                });
+
                 try {
-                    const sources = await Animepahe.scrapeIframe(id, episodeId, data.url);
-                    
+                    const sources = await Promise.race([scrapePromise, timeoutPromise]);
+
                     return sources.map(source => ({
                         ...source,
                         embed: data.embed,
@@ -430,13 +437,27 @@ class PlayModel {
                     }));
                 } catch (err) {
                     console.error(`Failed to process ${data.resolution}:`, err.message);
-                    return []; // Return empty array for failed items
+
+                    // Return partial data on timeout — at least give the embed URL
+                    if (err.message && err.message.includes('timed out')) {
+                        console.log(`[Timeout Fallback] Returning embed URL for ${data.resolution}`);
+                        return [{
+                            url: null,
+                            embed: data.embed,
+                            resolution: data.resolution,
+                            isDub: data.isDub,
+                            fanSub: data.fanSub,
+                            isBD: data.isBD || false,
+                            timeout: true,
+                        }];
+                    }
+                    return [];
                 }
             });
 
             const batchResults = await Promise.all(batchPromises);
             results.push(...batchResults);
-            
+
             // Reduced delay from 500ms to 300ms
             if (i + maxParallel < uniqueItems.length) {
                 await new Promise(resolve => setTimeout(resolve, 300));

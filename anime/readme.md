@@ -22,7 +22,7 @@ An unofficial REST API for [Animepahe](https://animepahe.pw/) that provides acce
 ## Installation
 
 ```bash
-git clone https://github.com/ElijahCodes12345/animepahe-api.git
+git clone https://github.com/aor-rex/pahe-api.git
 cd animepahe-api
 npm install
 npx playwright install
@@ -36,13 +36,13 @@ You can also use this project as a **Node.js library** directly in your code wit
 **Installation:**
 
 ```bash
-npm install github:ElijahCodes12345/animepahe-api
+npm install github:aor-rex/pahe-api
 ```
 
 **Example Usage:**
 
 ```javascript
-const animepahe = require("animepahe-api");
+const animepahe = require("pahe-api");
 
 // Search for anime
 const searchResults = await animepahe.search("title");

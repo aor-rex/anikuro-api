@@ -18,4 +18,48 @@ template: splash
   >
     launch playground →
   </a>
+
+  <h2 style="margin-top: 3rem; margin-bottom: 1.5rem;">available endpoints</h2>
+
+  <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+    <h3 style="color: #ff3333; margin-bottom: 0.5rem;">manga api</h3>
+    <ul style="list-style: none; padding: 0;">
+      <li>
+        <code>GET /api/manga/list</code> - Browse manga catalog
+      </li>
+      <li>
+        <code>GET /api/manga/search?q=</code> - Search manga
+      </li>
+      <li>
+        <code>GET /api/manga/:id</code> - Manga details
+      </li>
+      <li>
+        <code>GET /api/manga/:id/:ch</code> - Chapter images
+      </li>
+    </ul>
+
+    <h3 style="color: #ff3333; margin-top: 2rem; margin-bottom: 0.5rem;">
+      anime api
+    </h3>
+    <ul style="list-style: none; padding: 0;">
+      <li>
+        <code>GET /api/anime/airing</code> - Currently airing anime
+      </li>
+      <li>
+        <code>GET /api/anime/search?q=</code> - Search anime
+      </li>
+      <li>
+        <code>GET /api/anime/list</code> - Browse anime catalog
+      </li>
+      <li>
+        <code>GET /api/anime/:id</code> - Anime details
+      </li>
+      <li>
+        <code>GET /api/anime/:id/releases</code> - Episode list
+      </li>
+      <li>
+        <code>GET /api/anime/:id/:ep</code> - Streaming links
+      </li>
+    </ul>
+  </div>
 </div>

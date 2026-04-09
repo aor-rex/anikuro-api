@@ -1,11 +1,7 @@
 const redis = require('../utils/redis');
+const diskCache = require('../utils/diskCache');
 
 const cache = (duration) => async (req, res, next) => {
-    // caching will be skipped if Redis is disabled
-    if (!redis.enabled) {
-        return next();
-    }
-
     try {
         // Build a normalized cache key: path + sorted query params
         let key = req.path;
@@ -18,16 +14,38 @@ const cache = (duration) => async (req, res, next) => {
             key += `?${sortedQuery}`;
         }
 
-        const cachedResponse = await redis.get(key);
-
-        if (cachedResponse) {
-            return res.json(JSON.parse(cachedResponse));
+        // Try Redis first (if enabled)
+        if (redis.enabled) {
+            const cachedResponse = await redis.get(key);
+            if (cachedResponse) {
+                console.log(`[Cache] ✅ Redis HIT: ${key.substring(0, 60)}...`);
+                return res.json(JSON.parse(cachedResponse));
+            }
         }
 
+        // Fallback to disk cache when Redis is disabled or miss
+        if (!redis.enabled) {
+            const diskCached = await diskCache.get(key);
+            if (diskCached !== null) {
+                console.log(`[Cache] ✅ Disk HIT: ${key.substring(0, 60)}...`);
+                return res.json(diskCached);
+            }
+        }
+
+        // No cache hit — proceed and cache the result
         const originalJson = res.json;
-        
+
         res.json = async function(data) {
-            await redis.setEx(key, duration, JSON.stringify(data));
+            // Cache in Redis if enabled
+            if (redis.enabled) {
+                await redis.setEx(key, duration, JSON.stringify(data));
+            }
+
+            // Always cache to disk as fallback (even if Redis is enabled — double layer)
+            if (!redis.enabled) {
+                await diskCache.set(key, data, duration);
+            }
+
             return originalJson.call(this, data);
         };
 

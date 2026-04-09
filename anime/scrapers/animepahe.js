@@ -10,6 +10,10 @@ const os = require("os");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Module-level cache for iframe HTML (persists across all requests)
+const IFRAME_CACHE = new Map();
+const IFRAME_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
 class Animepahe {
   constructor() {
     // Use /tmp directory for Vercel
@@ -21,16 +25,177 @@ class Animepahe {
 
     // tracking for current kwik request
     this.currentKwikRequest = null;
+
+    // ─── S4: Persistent browser instance kept alive for the server's lifetime ───
+    // WHY THIS EXISTS:
+    // Previously, every request launched a NEW browser (~3-5s launch overhead).
+    // Now we launch ONE browser at startup, solve DDoS-Guard once, save the
+    // cookies, and keep the browser alive as a fallback.
+    //
+    // Benefits:
+    // - Cookie pre-fetching solves DDoS-Guard once at startup (~30s one-time cost)
+    // - All subsequent requests use axios + saved cookies (~0.5-2s each)
+    // - Persistent browser available for Playwright fallback if cookies expire
+    // - Only 1 browser process instead of 4 per request (~300MB vs ~1.5GB)
+    this.persistentBrowser = null;
+    this.browserReady = false;
   }
 
+  /**
+   * S4: Called once at server startup. Launches a browser, solves DDoS-Guard,
+   * saves cookies to disk, and keeps the browser alive for fallback use.
+   *
+   * WHAT THIS DOES:
+   * 1. Launches a Chromium browser (one-time, ~3-5s)
+   * 2. Navigates to animepahe.pw and waits for DDoS-Guard challenge (~15-40s)
+   * 3. Also visits /api to get API-specific session cookies
+   * 4. Extracts all cookies and saves to /tmp/cookies.json
+   * 5. Sets cookies in Config for immediate use by fetchWithCookies()
+   * 6. Closes the page but KEEPS the browser alive for fallback
+   *
+   * TOTAL TIME: ~30-60s (one-time at startup)
+   * AFTER THIS: All requests use axios + cookies (~0.5-2s each)
+   *
+   * If this fails, the server still starts — requests will use Playwright fallback.
+   */
   async initialize() {
-    const needsRefresh = await this.needsCookieRefresh();
+    console.log("\x1b[33m%s\x1b[0m", "═══════════════════════════════════════════");
+    console.log("\x1b[33m%s\x1b[0m", "  Cookie Pre-fetch — Solving DDoS-Guard...");
+    console.log("\x1b[33m%s\x1b[0m", "═══════════════════════════════════════════");
+    const start = Date.now();
 
-    if (needsRefresh) {
-      await this.refreshCookies();
+    // Check if we already have valid cookies from a previous run
+    if (!this.needsCookieRefreshSync()) {
+      try {
+        const cookieData = JSON.parse(await fs.readFile(this.cookiesPath, "utf8"));
+        const cookieHeader = cookieData.cookies
+          .map((cookie) => `${cookie.name}=${cookie.value}`)
+          .join("; ");
+        Config.setCookies(cookieHeader);
+        console.log(`\x1b[32m%s\x1b[0m`, `[Cookie Pre-fetch] ✅ Valid cookies found on disk (${Math.round((Date.now() - cookieData.timestamp) / 60000)}min old). Reusing.`);
+        this.browserReady = true;
+        return true;
+      } catch {
+        // No valid cookies — need to solve challenge
+      }
     }
 
-    return true;
+    try {
+      // Launch browser ONCE at startup
+      console.log("[Cookie Pre-fetch] Launching Chromium...");
+      this.persistentBrowser = await launchBrowser();
+      const context = await this.persistentBrowser.newContext();
+      const page = await context.newPage();
+
+      // Add stealth (same as refreshCookies)
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, "webdriver", { get: () => false });
+        Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3] });
+        Object.defineProperty(navigator, "languages", {
+          get: () => ["en-US", "en"],
+        });
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) =>
+          parameters.name === "notifications"
+            ? Promise.resolve({ state: Notification.permission })
+            : originalQuery(parameters);
+      });
+
+      // Navigate to animepahe.pw and wait for DDoS-Guard
+      console.log("[Cookie Pre-fetch] Navigating to animepahe.pw...");
+      await page.goto(Config.getUrl("home"), {
+        waitUntil: "networkidle",
+        timeout: 45000,
+      });
+
+      // Wait for DDoS-Guard challenge to solve
+      const isChallengeActive = await page.$("#ddg-cookie");
+      if (isChallengeActive) {
+        console.log("[Cookie Pre-fetch] DDoS-Guard challenge detected, waiting...");
+        await page.waitForSelector("#ddg-cookie", {
+          state: "hidden",
+          timeout: 45000,
+        });
+      }
+
+      // Buffer after challenge
+      await page.waitForTimeout(3000);
+
+      // Visit /api for API-specific session cookies
+      console.log("[Cookie Pre-fetch] Visiting /api endpoint...");
+      try {
+        await page.goto(Config.getUrl("home") + "api", {
+          waitUntil: "networkidle",
+          timeout: 15000,
+        });
+        await page.waitForTimeout(2000);
+      } catch {
+        // /api may return JSON — cookies still captured
+      }
+
+      // Extract cookies
+      const cookies = await context.cookies();
+      if (!cookies || cookies.length === 0) {
+        throw new CustomError("No cookies found after page load", 503);
+      }
+
+      // Save to disk
+      const cookieData = { timestamp: Date.now(), cookies };
+      await fs.mkdir(path.dirname(this.cookiesPath), { recursive: true });
+      await fs.writeFile(this.cookiesPath, JSON.stringify(cookieData, null, 2));
+
+      // Also set in Config for immediate use
+      const cookieHeader = cookies
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join("; ");
+      Config.setCookies(cookieHeader);
+
+      // Close the page but KEEP the browser alive
+      await page.close();
+      await context.close();
+
+      const elapsed = Date.now() - start;
+      this.browserReady = true;
+      console.log("\x1b[32m%s\x1b[0m", `═══════════════════════════════════════════`);
+      console.log("\x1b[32m%s\x1b[0m", `[Cookie Pre-fetch] ✅ Complete in ${Math.round(elapsed / 1000)}s`);
+      console.log("\x1b[32m%s\x1b[0m", `  Cookies: ${cookies.length} saved to ${this.cookiesPath}`);
+      console.log("\x1b[32m%s\x1b[0m", `  Browser: kept alive for fallback`);
+      console.log("\x1b[32m%s\x1b[0m", `  All requests will now use axios + cookies (~1-2s)`);
+      console.log("\x1b[32m%s\x1b[0m", "═══════════════════════════════════════════");
+
+      return true;
+    } catch (error) {
+      const elapsed = Date.now() - start;
+      console.error(
+        `\x1b[31m%s\x1b[0m`,
+        `[Cookie Pre-fetch] ❌ Failed after ${Math.round(elapsed / 1000)}s: ${error.message}`,
+      );
+      console.log(
+        "\x1b[33m%s\x1b[0m",
+        "[Cookie Pre-fetch] ⚠️ Server will still work — requests will use Playwright fallback",
+      );
+      this.browserReady = false;
+      return false;
+    } finally {
+      this.isRefreshingCookies = false;
+    }
+  }
+
+  /**
+   * Synchronous cookie freshness check (used at startup before async init).
+   */
+  needsCookieRefreshSync() {
+    try {
+      const data = require("fs").readFileSync(this.cookiesPath, "utf8");
+      const cookieData = JSON.parse(data);
+      if (cookieData?.timestamp) {
+        const ageInMs = Date.now() - cookieData.timestamp;
+        return ageInMs > this.cookiesRefreshInterval;
+      }
+      return true;
+    } catch {
+      return true;
+    }
   }
 
   async needsCookieRefresh() {
@@ -253,11 +418,8 @@ class Animepahe {
     return html;
   }
 
-  async scrapeAnimeList(tag1, tag2) {
-    const url =
-      tag1 || tag2
-        ? `${Config.getUrl("animeList", tag1, tag2)}`
-        : `${Config.getUrl("animeList")}`;
+  async scrapeAnimeList(page, tab, genre) {
+    const url = Config.getUrl("animeList", { page, tab, genre });
 
     const cookieHeader = await this.getCookies();
     const html = await RequestManager.fetch(url, cookieHeader);
@@ -274,24 +436,53 @@ class Animepahe {
       throw new CustomError("Both ID and episode ID are required", 400);
     }
 
-    const url = Config.getUrl("play", id, episodeId);
-    let cookieHeader = await this.getCookies();
+    const url = Config.getUrl("play", { id, episodeId });
+
+    // ─── FAST PATH: Try axios with saved cookies (no browser) ───
+    // This is Strategy 1: uses cookies pre-fetched at server startup.
+    // If cookies are valid, this takes ~0.5-2s instead of ~40-60s with Playwright.
+    // If cookies are expired, the response will be a DDoS-Guard challenge page,
+    // which we detect and fall back to Playwright.
+    if (Config.cookies) {
+      try {
+        console.log("[Play Page] Fast path: axios with saved cookies");
+        const html = await RequestManager.fetchWithCookies(url);
+
+        // Validate response — if it contains DDoS-Guard challenge, cookies are stale
+        if (
+          html &&
+          !html.includes("DDoS-Guard") &&
+          !html.toLowerCase().includes("checking your browser") &&
+          !html.includes("ddg-cookie")
+        ) {
+          console.log("[Play Page] ✅ Fast path success (no browser needed)");
+          return html;
+        }
+
+        console.log("[Play Page] ⚠️ Cookies expired, falling back to Playwright");
+      } catch (error) {
+        // axios may throw on non-2xx or network error — fall through to Playwright
+        console.log(`[Play Page] ⚠️ Fast path failed (${error.message}), falling back to Playwright`);
+      }
+    }
+
+    // ─── FALLBACK: Use Playwright to bypass DDoS-Guard ───
+    console.log("[Play Page] Slow path: Playwright (DDoS-Guard bypass)");
     try {
-      const html = await RequestManager.fetch(url, cookieHeader);
+      const html = await RequestManager.fetch(url, null, "heavy");
 
       if (!html) {
         throw new CustomError("Failed to fetch play page", 503);
       }
       return html;
     } catch (error) {
-      if (
-        error.response?.status === 403 ||
-        (error.message &&
-          error.message.includes("DDoS-Guard authentication required"))
-      ) {
+      if (error.message && error.message.includes("Failed to fetch")) {
+        // Try one more time with cookie refresh
+        console.log(
+          "Playwright fetch failed, refreshing cookies and retrying...",
+        );
         await this.refreshCookies();
-        cookieHeader = await this.getCookies();
-        const html = await RequestManager.fetch(url, cookieHeader);
+        const html = await RequestManager.fetch(url, null, "heavy");
         if (!html) {
           throw new CustomError(
             "Failed to fetch play page after cookie refresh",
@@ -300,7 +491,7 @@ class Animepahe {
         }
         return html;
       }
-      if (error.response?.status === 404) {
+      if (error.message && error.message.includes("not found")) {
         throw new CustomError("Anime or episode not found", 404);
       }
       throw error;
@@ -314,10 +505,14 @@ class Animepahe {
 
     console.log("Initiating iframe HTML fetch:", url);
 
-    // To add more strategies in the future, add them to this array:
+    const IFRAME_STRATEGY_TIMEOUT = 25000; // 25s per strategy
+
+    // Strategy ordering: fastest/cheapest first, heavier fallbacks after.
+    // 1. cloudscraper — solves CF IUAM programmatically (~1-3s, no browser)
+    // 2. Playwright (scrapeIframeLight) — full browser if cloudscraper fails (~13-26s)
     const allStrategies = [
-      () => this.scrapeIframeLight(url),
-      // () => this.scrapeIframeHeavy(Config.getUrl('play', id, episodeId), url),
+      () => this.scrapeIframeCloudscraper(url),  // S2: fast path
+      () => this.scrapeIframeLight(url),          // Playwright fallback
     ];
 
     // Process strategies in parallel, max 2 at a time
@@ -330,9 +525,15 @@ class Animepahe {
       );
 
       const promises = batch.map(async (strategy, idx) => {
+        // Wrap each strategy with a timeout
+        const strategyPromise = strategy();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Strategy timed out after ${IFRAME_STRATEGY_TIMEOUT / 1000}s`)), IFRAME_STRATEGY_TIMEOUT);
+        });
+
         try {
           console.log(`Starting strategy ${i + idx + 1} in parallel...`);
-          const result = await strategy();
+          const result = await Promise.race([strategyPromise, timeoutPromise]);
           if (result && result.length > 100) {
             console.log(`Strategy ${i + idx + 1} succeeded`);
             return { success: true, result, strategyIndex: i + idx };
@@ -571,25 +772,25 @@ class Animepahe {
             );
             if (tokenMatch) foundToken = tokenMatch[1];
             if (el) el.innerHTML = htmlStr;
-            return this;
+            return $;
           }
           return el?.innerHTML || "";
         },
         attr: (n, v) =>
           v !== undefined
-            ? (el?.setAttribute(n, v), this)
+            ? (el?.setAttribute(n, v), $)
             : el?.getAttribute(n) || "",
         click: (fn) => {
           if (typeof fn === "function")
             try {
               fn.call(el);
             } catch (e) {}
-          return this;
+          return $;
         },
-        on: () => this,
+        on: () => $,
         remove: () => {
           el?.remove();
-          return this;
+          return $;
         },
         length: els.length,
       };
@@ -622,7 +823,7 @@ class Animepahe {
     for (const s of scripts) {
       if (s && s.length > 100) {
         try {
-          vm.runInContext(s, vm.createContext(sandbox), { timeout: 4000 });
+          vm.runInNewContext(s, sandbox, { timeout: 4000 });
           if (foundAction && foundToken) break;
         } catch (e) {}
       }
@@ -750,9 +951,125 @@ class Animepahe {
     return null;
   }
 
-  async scrapeIframeLight(url) {
+  /**
+   * STRATEGY 2 — Fast iframe fetch via cloudscraper (no browser).
+   *
+   * WHY THIS EXISTS:
+   * Previously, every iframe (kwik.cx/e/...) launched a full Chromium browser,
+   * waited for Cloudflare IUAM to solve, then extracted HTML.
+   * Total per iframe: ~13-26s. For 3 resolutions (360p, 720p, 1080p): ~39-78s.
+   *
+   * This method uses cloudscraper which programmatically solves Cloudflare's
+   * "I'm Under Attack Mode" challenge without a browser.
+   * Total per iframe: ~1-3s. For 3 resolutions: ~3-9s.
+   *
+   * FALLBACK: If cloudscraper can't solve the challenge (e.g., newer CF version),
+   * it returns challenge HTML. The caller (scrapeIframeLight) detects this
+   * and falls back to Playwright.
+   *
+   * @param {string} url - Kwik iframe URL (e.g., https://kwik.cx/e/abc123)
+   * @returns {Promise<string>} iframe HTML
+   */
+  async scrapeIframeCloudscraper(url) {
+    // Check module-level cache first (6-hour TTL)
+    const cached = IFRAME_CACHE.get(url);
+    if (cached && Date.now() - cached.timestamp < IFRAME_CACHE_TTL) {
+      console.log(`[Kwik Fetch] ✅ Cache hit via cloudscraper (${url.substring(0, 50)}...)`);
+      return cached.html;
+    }
+
     try {
-      const html = await RequestManager.scrapeWithCloudScraper(url);
+      console.log(
+        `[Kwik Fetch] Using cloudscraper for: ${url.substring(0, 60)}...`,
+      );
+
+      const response = await RequestManager.cloudscraperGet(url, {
+        headers: {
+          Cookie: Config.cookies,
+          Referer: "https://animepahe.pw/",
+        },
+        timeout: 10000,
+      });
+
+      const html = response.body;
+
+      // Validate response — cloudscraper may return CF challenge HTML if it can't solve
+      if (
+        html &&
+        html.length > 100 &&
+        !html.toLowerCase().includes("just a moment") &&
+        !html.toLowerCase().includes("checking your browser") &&
+        !html.toLowerCase().includes("ddos protection by cloudflare")
+      ) {
+        console.log(`[Kwik Fetch] ✅ cloudscraper success (${html.length} bytes)`);
+        IFRAME_CACHE.set(url, { html, timestamp: Date.now() });
+        return html;
+      }
+
+      // Response is a CF challenge page — cloudscraper couldn't solve it
+      throw new Error("Cloudscraper returned CF challenge page — needs Playwright fallback");
+    } catch (error) {
+      console.warn(`[Kwik Fetch] ❌ cloudscraper failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * FALLBACK: Iframe fetch via Playwright (full browser).
+   *
+   * ROLE: This is the second strategy for iframe fetching. It's called only when
+   * cloudscraper (scrapeIframeCloudscraper) fails to solve the Cloudflare challenge.
+   *
+   * WHY IT EXISTS: cloudscraper solves CF IUAM programmatically, but if CF updates
+   * their challenge or the page uses additional JS rendering, cloudscraper returns
+   * the challenge page HTML. Playwright with a real Chromium instance can handle
+   * any challenge, at the cost of ~13-26s per iframe.
+   *
+   * @param {string} url - Kwik iframe URL
+   * @returns {Promise<string>} iframe HTML
+   */
+  async scrapeIframeLight(url) {
+    // Check module-level cache first (6-hour TTL)
+    const cached = IFRAME_CACHE.get(url);
+    if (cached && Date.now() - cached.timestamp < IFRAME_CACHE_TTL) {
+      console.log(`[Kwik Fetch] ✅ Cache hit (fallback path) (${url.substring(0, 50)}...)`);
+      return cached.html;
+    }
+
+    const GLOBAL_TIMEOUT = 30000; // 30s total for entire browser operation
+    let browser = null;
+
+    try {
+      console.log(
+        `[Kwik Fetch] Fallback: Playwright for: ${url.substring(0, 60)}...`,
+      );
+
+      const { chromium } = require("playwright");
+      browser = await Promise.race([
+        chromium.launch({ headless: true }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Browser launch timed out")), 10000)),
+      ]);
+
+      const page = await browser.newPage();
+
+      // Set a hard timeout for the entire operation
+      const result = await Promise.race([
+        (async () => {
+          await page.goto(url, {
+            waitUntil: "domcontentloaded",
+            timeout: 15000,
+          });
+
+          // Wait for CF challenge to solve (usually 2-3s)
+          await page.waitForTimeout(3000);
+
+          const html = await page.content();
+          return html;
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Page navigation timed out")), GLOBAL_TIMEOUT)),
+      ]);
+
+      const html = result;
 
       if (
         html &&
@@ -760,13 +1077,21 @@ class Animepahe {
         !html.toLowerCase().includes("just a moment") &&
         !html.toLowerCase().includes("checking your browser")
       ) {
+        console.log(`[Kwik Fetch] ✅ Playwright fallback success (${html.length} bytes)`);
+        // Cache the result (module-level)
+        IFRAME_CACHE.set(url, { html, timestamp: Date.now() });
         return html;
       }
 
       throw new Error("Response blocked or invalid");
     } catch (error) {
-      console.warn("Cloudscraper method failed:", error.message);
+      console.warn(`[Kwik Fetch] ❌ Playwright fallback failed: ${error.message}`);
       throw error;
+    } finally {
+      // Always close the browser, even if an error occurred
+      if (browser) {
+        await browser.close().catch(() => {});
+      }
     }
   }
 
@@ -790,7 +1115,11 @@ class Animepahe {
       } else {
         switch (type) {
           case "animeList":
-            return await this.scrapeAnimeList(params.tag1, params.tag2);
+            return await this.scrapeAnimeList(
+              params.page,
+              params.tab,
+              params.genre,
+            );
           case "animeInfo":
             return await this.scrapeAnimeInfo(params.animeId);
           case "play":

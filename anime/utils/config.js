@@ -94,13 +94,16 @@ class Config {
     this.proxies = newProxies;
   }
 
-  getUrl(section, primary = "", secondary = "") {
+  getUrl(section, params = {}) {
+    const { page, tab, genre } = params;
+    const primary = params.primary || params.animeId || params.id || "";
+    const secondary = params.secondary || params.episodeId || params.ep || "";
+
     const paths = {
       home: "/",
       queue: "/queue",
       animeInfo: `/anime/${primary}`,
-      animeList:
-        primary && secondary ? `/anime/${primary}/${secondary}` : "/anime",
+      animeList: "/anime",
       play: `/play/${primary}/${secondary}`,
     };
 
@@ -108,7 +111,22 @@ class Config {
       throw new Error(`Invalid section: ${section}`);
     }
 
-    return `${this.baseUrl}${paths[section]}`;
+    let url = `${this.baseUrl}${paths[section]}`;
+
+    // Add query params for animeList
+    if (section === "animeList") {
+      const queryParams = new URLSearchParams();
+      if (page) queryParams.append("page", page);
+      if (tab) queryParams.append("tab", tab);
+      if (genre) queryParams.append("genre", genre);
+
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+    }
+
+    return url;
   }
 
   loadFromEnv() {

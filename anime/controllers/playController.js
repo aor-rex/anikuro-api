@@ -26,34 +26,37 @@ class PlayController {
     }
   }
 
-  static async getDownloadLinks(req, res, next) {
-    try {
-      const { url } = req.query;
+  // @deprecated — Broken since kwik.cx added Cloudflare protection.
+  // Direct MP4 download URLs are already available in /api/play/:id?episodeId=
+  // under sources[].download and downloads[].download.
+  // To fix: replace cloudscraper with Playwright in extractKwikUrl/getKwikDownloadUrl.
+  static getDownloadLinks(req, res) {
+    const { url } = req.query;
 
-      if (!url) {
-        throw new CustomError("Url is required", 400);
-      }
-
-      // @deprecated — Broken since kwik.cx added Cloudflare protection.
-      // Direct MP4 download URLs are already available in /api/play/:id?episodeId=
-      // under sources[].download and downloads[].download.
-      // To fix: replace cloudscraper with Playwright in extractKwikUrl/getKwikDownloadUrl.
-      return res.json({
-        status: 501,
-        message:
-          "DEPRECATED: This endpoint is broken due to Cloudflare protection on kwik.cx.",
-        workaround:
-          "Use /api/play/:id?episodeId= instead. Direct MP4 download URLs are provided under sources[].download and downloads[].download.",
-        fix_hint:
-          "To restore this endpoint, replace cloudscraper with Playwright in scrapers/animepahe.js → extractKwikUrl() and getKwikDownloadUrl().",
+    if (!url) {
+      return res.status(400).json({
+        status: 400,
+        message: "Url is required",
       });
-
-      // Original code preserved below for future restoration:
-      // const links = await PlayModel.getDownloadLinks(url);
-      // return res.json(links);
-    } catch (error) {
-      next(error);
     }
+
+    return res.json({
+      status: 501,
+      message:
+        "DEPRECATED: This endpoint is broken due to Cloudflare protection on kwik.cx.",
+      workaround:
+        "Use /api/play/:id?episodeId= instead. Direct MP4 download URLs are provided under sources[].download and downloads[].download.",
+      fix_hint:
+        "To restore this endpoint, replace cloudscraper with Playwright in scrapers/animepahe.js → extractKwikUrl() and getKwikDownloadUrl().",
+    });
+
+    // Original code preserved below for future restoration:
+    // try {
+    //   const links = await PlayModel.getDownloadLinks(url);
+    //   return res.json(links);
+    // } catch (error) {
+    //   next(error);
+    // }
   }
 }
 

@@ -20,10 +20,11 @@ Thumbs.db
 # Build output
 dist/
 build/
-
+.venv
 .qwen
 .qwenignore.
 .gitattributes
+.
 
 index.md
 RULE.md

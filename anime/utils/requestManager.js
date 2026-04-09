@@ -27,7 +27,7 @@ class RequestManager {
       json = null,
       followRedirect = true,
       followAllRedirects = false,
-      timeout = 30000,
+      timeout = 8000, // Reduced from 30s to 8s for faster failure detection
       referer = Config.getUrl("home"),
       resolveWithFullResponse = true,
       simple = false,
@@ -136,6 +136,53 @@ class RequestManager {
   }
 
   /**
+   * Fast path: fetch a page using saved cookies (no browser launch).
+   *
+   * WHY THIS EXISTS:
+   * Previously, every request to animepahe.pw/play/... launched a full Chromium
+   * browser (~3-5s launch), waited for the DDoS-Guard challenge to solve
+   * (~15-40s), then extracted the HTML. Total: ~40-60s per play page request.
+   *
+   * This method uses cookies that were pre-fetched once at server startup
+   * (see Animepahe.initialize()). Since DDoS-Guard cookies are valid for ~14 days,
+   * we can attach them to a plain axios GET and skip the browser entirely.
+   * Total: ~0.5-2s per request.
+   *
+   * FALLBACK: If cookies are expired/invalid, the response will contain the
+   * DDoS-Guard challenge HTML. The caller detects this and falls back to
+   * scrapeWithPlaywright() which re-solves the challenge.
+   *
+   * @param {string} url - Target URL on animepahe.pw
+   * @returns {Promise<string>} HTML response body
+   */
+  static async fetchWithCookies(url) {
+    const cookieHeader = Config.cookies;
+    if (!cookieHeader) {
+      throw new CustomError(
+        "No cookies available — cookie pre-fetch not yet complete",
+        503,
+      );
+    }
+
+    const response = await axios.get(url, {
+      headers: {
+        Cookie: cookieHeader,
+        Referer: Config.getUrl("home"),
+        "User-Agent": Config.userAgent,
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      timeout: 15000,
+      maxRedirects: 5,
+    });
+
+    return typeof response.data === "string"
+      ? response.data
+      : JSON.stringify(response.data);
+  }
+
+  /**
    * Legacy method - now uses the universal cloudscraper method
    */
   static async scrapeWithCloudScraper(url, options = {}) {
@@ -166,6 +213,8 @@ class RequestManager {
     console.log("Fetching content from:", url);
     const proxy = Config.proxyEnabled ? Config.getRandomProxy() : null;
     console.log(`Using proxy: ${proxy || "none"}`);
+
+    const GLOBAL_TIMEOUT = 120000; // 120s total for Playwright operations (DDoS challenges can be slow)
 
     const browser = await launchBrowser();
 
@@ -207,35 +256,43 @@ class RequestManager {
       });
 
       console.log("Navigating to URL...");
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120000 });
 
-      await page.waitForTimeout(10000); // DDoS challenge buffer
+      // Wrap entire operation with a global timeout
+      const content = await Promise.race([
+        (async () => {
+          await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120000 });
 
-      const isApiRequest = url.includes("/api") || url.endsWith(".json");
+          await page.waitForTimeout(3000); // DDoS challenge buffer (reduced from 10s)
 
-      if (!isApiRequest) {
-        try {
-          await page.waitForSelector(".episode-wrap, .episode-list", {
-            timeout: 60000,
-          });
-        } catch (e) {
-          console.log("Selector not found, continuing...");
-        }
-      } else {
-        try {
-          await page.waitForFunction(
-            () => {
-              const text = document.body.textContent;
-              return text.includes("{") && text.includes("}");
-            },
-            { timeout: 60000 },
-          );
-        } catch (e) {
-          console.log("API content not found, continuing...");
-        }
-      }
+          const isApiRequest = url.includes("/api") || url.endsWith(".json");
 
-      const content = await page.content();
+          if (!isApiRequest) {
+            try {
+              await page.waitForSelector(".episode-wrap, .episode-list", {
+                timeout: 60000,
+              });
+            } catch (e) {
+              console.log("Selector not found, continuing...");
+            }
+          } else {
+            try {
+              await page.waitForFunction(
+                () => {
+                  const text = document.body.textContent;
+                  return text.includes("{") && text.includes("}");
+                },
+                { timeout: 60000 },
+              );
+            } catch (e) {
+              console.log("API content not found, continuing...");
+            }
+          }
+
+          return await page.content();
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Playwright operation timed out after ${GLOBAL_TIMEOUT / 1000}s`)), GLOBAL_TIMEOUT)),
+      ]);
+
       return content;
     } finally {
       await browser.close();

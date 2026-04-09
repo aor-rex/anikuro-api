@@ -1,38 +1,38 @@
 ---
-title: anikuro api
-description: your anime manga api gateway.
-template: splash
-hero:
-  tagline: your go-to manga api for accessing a vast repository of manga data freely.
-  image:
-    file: ./houston.webp
-  actions:
-    - text: read docs
-      link: /docs/manga/introduction/
-      icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      variant: primary
-    - text: github repo
-      link: https://github.com/aor-rex/anikuro-api
-      icon: github
-      variant: secondary
+title: Introduction
+description: Overview of the Anikuro API and its endpoints
 ---
 
-export const prerender = true;
-import { Card, CardGrid } from "@astrojs/starlight/components";
+# Welcome to Anikuro API
 
-## about
+Anikuro API is a unified REST API gateway for both **manga** and **anime** content. It scrapes data from manga and anime websites and serves them as clean, structured JSON responses.
 
-<CardGrid>
-  <Card title="api overview" icon="star">
-    discover manga effortlessly with our api. get a full list in one request and delve into single manga details easily.
-  </Card>
+## Features
 
-<Card title="search support" icon="search">
-  enable quick and efficient manga searches with advanced features, ensuring
-  users find their favorites effortlessly.
-</Card>
+- 📚 **Manga API** - Browse, search, and read manga chapters
+- 🎬 **Anime API** - Browse, search, and stream anime episodes
+- ⚡ **Caching** - Redis-backed response caching (optional)
+- 🔒 **Rate Limiting** - IP-based rate limiting (optional)
+- 🌐 **No API Key Required** - Public access to all endpoints
 
-  <Card title="interactive playground" icon="code">
-    test api endpoints live in your browser. search, browse, read chapters — all without writing code.
-  </Card>
-</CardGrid>
+## API Structure
+
+All endpoints are mounted under `/api/` with two namespaces:
+
+| Namespace | Description                  | Base URL      |
+| --------- | ---------------------------- | ------------- |
+| Manga     | Manga browsing and reading   | `/api/manga/` |
+| Anime     | Anime browsing and streaming | `/api/anime/` |
+
+## Quick Links
+
+- [Manga List](/manga/mangalist/) - Browse manga catalog
+- [Anime List](/anime/animelist/) - Browse anime catalog
+- [Search](/manga/search/) - Search manga and anime
+- [API Playground](/playground/) - Interactive API testing
+
+## Base URL
+
+```
+https://aor-rex-anikuro-api.hf.space
+```

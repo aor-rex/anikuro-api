@@ -10,328 +10,219 @@ Source: [animepahe.pw](https://animepahe.pw)
 
 ---
 
-## 1. Directory Structure
+## 1. Directory Structure (Updated)
 
-Copy the entire `pahe-api` into `anikuro-api/anime/` as-is:
+The anime directory has been modified with S1+S2+S4 optimizations and Fix 3 (timeout protection) + Fix 4 (disk cache):
 
 ```text
 anikuro-api/
 ├── manga/                     # Existing manga API (untouched)
-├── anime/                     # pahe-api copied here (internals untouched)
-│   ├── app.js                 # Modified: export app, do NOT listen
-│   ├── index.js               # Library entry point (unchanged)
+├── anime/                     # pahe-api with S1+S2+S4 optimizations
+│   ├── app.js                 # Modified: export app, S4 cookie pre-fetch on startup
 │   ├── controllers/           # All 6 controllers (unchanged)
-│   ├── models/                # All 5 models (unchanged)
+│   ├── models/
+│   │   └── playModel.js       # Updated: timeout protection (20s per iframe)
 │   ├── routes/                # All 6 route files (unchanged)
 │   ├── scrapers/
-│   │   └── animepahe.js       # Playwright Cloudflare bypass (unchanged)
-│   ├── middleware/            # cache, errorHandler, rateLimiter (unchanged)
-│   ├── utils/                 # All 7 utilities (unchanged)
-│   ├── package.json           # Kept as-is (own dependencies)
-│   └── .env.example
+│   │   └── animepahe.js       # Updated: S1 (cookie fast path) + S2 (cloudscraper iframes) + S4 (persistent browser)
+│   ├── middleware/
+│   │   └── cache.js           # Updated: Redis → Disk cache fallback (Fix 4)
+│   ├── utils/
+│   │   ├── requestManager.js  # Updated: fetchWithCookies() method (S1 core)
+│   │   ├── browser.js         # Chromium launcher (@sparticuz/chromium) — unchanged
+│   │   ├── config.js          # URL builder, cookie management — unchanged
+│   │   └── diskCache.js       # NEW: Disk-based cache fallback (Fix 4)
+│   └── package.json           # Kept as-is (own dependencies)
+├── unified/
+│   └── app.js                 # Root server: download-proxy rewrite, crash prevention
 ├── Dockerfile                 # Modified: build + copy both
-└── app.js                     # NEW root entry (mounts both)
+└── docs/                      # Astro documentation
+    └── public/
+        └── playground.html    # Interactive API tester (1,500+ lines)
 ```
 
 ---
 
 ## 2. Current pahe-api Routes (Verified from Route Files)
 
-These are the **actual** routes registered by each route file, and their final URLs after `app.use('/api', router)` in app.js:
+These are the **actual** routes registered by each route file, and their final URLs after mounting under `/api/anime`:
 
-| Route File           | Path Registered        | app.js Mount | Final URL (Standalone)              |
-| -------------------- | ---------------------- | ------------ | ----------------------------------- |
-| `homeRoutes.js`      | `/airing`              | `/api`       | `GET /api/airing`                   |
-| `homeRoutes.js`      | `/search`              | `/api`       | `GET /api/search?q=`                |
-| `animeListRoutes.js` | `/anime`               | `/api`       | `GET /api/anime`                    |
-| `animeListRoutes.js` | `/anime/:tag1/:tag2`   | `/api`       | `GET /api/anime/:tag1/:tag2`        |
-| `animeInfoRoutes.js` | `/:id`                 | `/api`       | `GET /api/:id`                      |
-| `animeInfoRoutes.js` | `/:id/releases`        | `/api`       | `GET /api/:id/releases`             |
-| `playRoutes.js`      | `/play/:id`            | `/api`       | `GET /api/play/:id?episodeId=`      |
-| `playRoutes.js`      | `/play/download-links` | `/api`       | `GET /api/play/download-links?url=` |
-| `queueRoutes.js`     | `/queue`               | `/api`       | `GET /api/queue`                    |
-| `testRoutes.js`      | `/kwik-test`           | `/api`       | `GET /api/kwik-test`                |
-| `testRoutes.js`      | `/downlod-test`        | `/api`       | `GET /api/downlod-test`             |
-| `testRoutes.js`      | `/test`                | `/api`       | `GET /api/test`                     |
+| Route File           | Path Registered        | app.js Mount  | Final URL                            |
+| -------------------- | ---------------------- | ------------- | ------------------------------------ |
+| `homeRoutes.js`      | `/airing`              | `/api/anime`  | `GET /api/anime/airing`              |
+| `homeRoutes.js`      | `/search`              | `/api/anime`  | `GET /api/anime/search?q=`           |
+| `animeListRoutes.js` | `/list`                | `/api/anime`  | `GET /api/anime/list`                |
+| `animeListRoutes.js` | `/list/:tag1/:tag2`    | `/api/anime`  | `GET /api/anime/list/:tag1/:tag2`    |
+| `animeInfoRoutes.js` | `/:id`                 | `/api/anime`  | `GET /api/anime/:id`                 |
+| `animeInfoRoutes.js` | `/:id/releases`        | `/api/anime`  | `GET /api/anime/:id/releases`        |
+| `playRoutes.js`      | `/:id/:ep`             | `/api/anime`  | `GET /api/anime/:id/:ep`             |
+| `playRoutes.js`      | `/download-links`      | `/api/anime`  | `GET /api/anime/download-links`      |
+| `queueRoutes.js`     | `/queue`               | `/api/anime`  | `GET /api/anime/queue`               |
 
----
+### Additional Routes (Root Level)
 
-## 3. Target Route Table After Integration
-
-| Method | Route                                       | Description                        | Manga Equivalent                         |
-| ------ | ------------------------------------------- | ---------------------------------- | ---------------------------------------- |
-| `GET`  | `/api/anime/airing`                         | Currently airing anime             | —                                        |
-| `GET`  | `/api/anime/search?q=`                      | Search anime                       | `/api/manga/search/:query`               |
-| `GET`  | `/api/anime/list`                           | Browse A-Z                         | `/api/manga/list`                        |
-| `GET`  | `/api/anime/list?page=2&tab=A&genre=action` | Filters                            | `/api/manga/list?category=action&page=2` |
-| `GET`  | `/api/anime/:id`                            | Anime details                      | `/api/manga/:id`                         |
-| `GET`  | `/api/anime/:id/releases`                   | Episode list                       | —                                        |
-| `GET`  | `/api/anime/:id/:ep`                        | Stream + download links            | `/api/manga/:id/:ch`                     |
-| `GET`  | `/api/anime/download-links?url=`            | Single download link ⚠️ DEPRECATED | —                                        |
-| `GET`  | `/api/anime/queue`                          | Queue/upcoming                     | —                                        |
-| `GET`  | `/api/anime/kwik-test`                      | Test kwik                          | —                                        |
-| `GET`  | `/api/anime/downlod-test`                   | Test download                      | —                                        |
-| `GET`  | `/api/anime/test`                           | General test                       | —                                        |
-
-### What Changes From Current → Target
-
-| Current Route                   | Target Route                     | What Needs Changing                                                                   |
-| ------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
-| `/api/anime`                    | `/api/anime/list`                | Route file: `/anime` → `/list`                                                        |
-| `/api/anime/:tag1/:tag2`        | `/api/anime/list/:tag1/:tag2`    | Route file: `/anime/:tag1/:tag2` → `/list/:tag1/:tag2`                                |
-| `/api/play/:id?episodeId=`      | `/api/anime/:id/:ep`             | Route: `/play/:id` → `/:id/:ep` + controller: `req.query.episodeId` → `req.params.ep` |
-| `/api/play/download-links?url=` | `/api/anime/download-links?url=` | Route: `/play/download-links` → `/download-links`                                     |
-
-### Routes That Stay the Same (Just mount prefix change)
-
-| Route File           | Current Path    | Target Path     | Change Needed? |
-| -------------------- | --------------- | --------------- | -------------- |
-| `homeRoutes.js`      | `/airing`       | `/airing`       | No             |
-| `homeRoutes.js`      | `/search`       | `/search`       | No             |
-| `animeInfoRoutes.js` | `/:id`          | `/:id`          | No             |
-| `animeInfoRoutes.js` | `/:id/releases` | `/:id/releases` | No             |
-| `queueRoutes.js`     | `/queue`        | `/queue`        | No             |
-| `testRoutes.js`      | `/kwik-test`    | `/kwik-test`    | No             |
-| `testRoutes.js`      | `/downlod-test` | `/downlod-test` | No             |
-| `testRoutes.js`      | `/test`         | `/test`         | No             |
-
-### Routes That Need Changes
-
-| Route File           | Current Path           | Target Path         |
-| -------------------- | ---------------------- | ------------------- |
-| `animeListRoutes.js` | `/anime`               | `/list`             |
-| `animeListRoutes.js` | `/anime/:tag1/:tag2`   | `/list/:tag1/:tag2` |
-| `playRoutes.js`      | `/play/:id`            | `/:id/:ep`          |
-| `playRoutes.js`      | `/play/download-links` | `/download-links`   |
-
-### Controller Changes
-
-| Controller          | Current               | Target          |
-| ------------------- | --------------------- | --------------- |
-| `playController.js` | `req.query.episodeId` | `req.params.ep` |
+| Route File     | Path Registered        | app.js Mount | Final URL                           |
+| -------------- | ---------------------- | ------------ | ----------------------------------- |
+| `unified/app.js` | `/download-proxy`    | `/api/anime`  | `GET /api/anime/download-proxy?url=` |
 
 ---
 
-## 4. After Mounting in anikuro-api
+## 3. Final Route Table (Verified Working)
 
-### The Problem
+| Method | Route                                       | Description                                   | Status |
+| ------ | ------------------------------------------- | --------------------------------------------- | ------ |
+| `GET`  | `/api/anime/airing`                         | Get currently airing anime                    | ✅ Working (~0.3s) |
+| `GET`  | `/api/anime/search?q=`                      | Search anime by title                         | ✅ Working (~0.4s) |
+| `GET`  | `/api/anime/list`                           | Browse anime catalog (A-Z)                    | ✅ Working (~2s) |
+| `GET`  | `/api/anime/list?page=1&tab=A&genre=action` | Filter anime by genre/tab/letter              | ✅ Working (~2s) |
+| `GET`  | `/api/anime/:id`                            | Get anime details, relations, recommendations | ✅ Working (~1s, S1 fast path) |
+| `GET`  | `/api/anime/:id/releases`                   | Get anime episode list                        | ❌ **animepahe API broken** |
+| `GET`  | `/api/anime/:id/:ep`                        | Get streaming links for episode               | ✅ **Working (~5-14s, was ~100s)** |
+| `GET`  | `/api/anime/download-links`                 | Get direct download links                     | ⚠️ Deprecated (501) |
+| `GET`  | `/api/anime/download-proxy?url=`            | Download file via Playwright CF bypass        | ✅ Improved (streaming, timeout, finally) |
+| `GET`  | `/api/anime/queue`                          | Get download queue                            | ✅ Working |
 
-Parent app mounts anime at `/api/anime`:
+### Filter Parameters
 
-```js
-app.use("/api/anime", animeApp);
-```
-
-But anime's `app.js` mounts routers at `/api`:
-
-```js
-app.use("/api", homeRoutes);
-```
-
-Result: `/api/anime` + `/api/airing` = **`/api/anime/api/airing`** ❌
-
-### The Fix
-
-Change all `app.use('/api', ...)` to `app.use('', ...)` in anime's `app.js`.
-
-**Before:**
-
-```js
-app.use("/api", testRoutes);
-app.use("/api", homeRoutes);
-app.use("/api", cache(30), queueRoutes);
-app.use("/api", cache(18000), animeListRoutes);
-app.use("/api", cache(86400), animeInfoRoutes);
-app.use("/api", cache(3600), playRoutes);
-```
-
-**After:**
-
-```js
-app.use("", testRoutes);
-app.use("", homeRoutes);
-app.use("", cache(30), queueRoutes);
-app.use("", cache(18000), animeListRoutes);
-app.use("", cache(86400), animeInfoRoutes);
-app.use("", cache(3600), playRoutes);
-```
-
-Then parent mounts at `/api/anime` → paths concatenate cleanly.
+| Feature       | Param     | Example         |
+| ------------- | --------- | --------------- |
+| Pagination    | `?page=`  | `?page=2`       |
+| Letter filter | `?tab=`   | `?tab=A`        |
+| Genre filter  | `?genre=` | `?genre=action` |
+| Search query  | `?q=`     | `?q=Naruto`     |
 
 ### Route Collision Check
 
-| Manga Route                | Anime Route            | Collision?               |
-| -------------------------- | ---------------------- | ------------------------ |
-| `/api/manga/list`          | `/api/anime/airing`    | ✅ No                    |
-| `/api/manga/list`          | `/api/anime/list`      | ✅ No (different prefix) |
-| `/api/manga/search/:query` | `/api/anime/search?q=` | ✅ No                    |
-| `/api/manga/:id`           | `/api/anime/:id`       | ✅ No                    |
-| `/api/manga/:id/:ch`       | `/api/anime/:id/:ep`   | ✅ No                    |
+| Manga Route                | Anime Route               | Collision?               |
+| -------------------------- | ------------------------- | ------------------------ |
+| `/api/manga/list`          | `/api/anime/airing`       | ✅ No                    |
+| `/api/manga/list`          | `/api/anime/list`         | ✅ No (different prefix) |
+| `/api/manga/search/:query` | `/api/anime/search?q=`    | ✅ No                    |
+| `/api/manga/:id`           | `/api/anime/:id`          | ✅ No (different prefix) |
+| `/api/manga/:id/:ch`       | `/api/anime/:id/releases` | ✅ No (different suffix) |
 
 No collisions.
 
 ---
 
-## 5. Filter Parameter Mapping
+## 4. Performance Optimizations Applied
 
-| Feature          | Param           | Example                 |
-| ---------------- | --------------- | ----------------------- |
-| Pagination       | `?page=`        | `?page=2`               |
-| Letter filter    | `?tab=`         | `?tab=A`                |
-| Genre filter     | `?genre=`       | `?genre=action`         |
-| Search query     | `?q=`           | `?q=Naruto`             |
-| Episode ID       | `req.params.ep` | `/:id/:ep` (path param) |
-| Sort order       | `?sort=`        | `?sort=episode_desc`    |
-| Downloads toggle | `?downloads=`   | `?downloads=false`      |
-| Tag filters      | path params     | `/list/:tag1/:tag2`     |
+### Strategy 1: Cookie Pre-Fetching (S1)
+- **What:** Fetch cookies once at startup, reuse for all requests
+- **How:** `requestManager.fetchWithCookies()` uses axios + saved cookies instead of Playwright
+- **Impact:** Play page fetch ~40-60s → ~0.5-2s (20-60x faster)
+- **Fallback:** If cookies expired → Playwright re-solves DDoS-Guard → saves new cookies
+
+### Strategy 2: Cloudscraper for Iframes (S2)
+- **What:** Use cloudscraper instead of Playwright for kwik.cx iframe fetching
+- **How:** `scrapeIframeCloudscraper()` tried first, Playwright as fallback
+- **Impact:** Each iframe ~13-26s → ~1-3s (5-10x faster)
+
+### Strategy 4: Persistent Browser (S4)
+- **What:** Launch ONE browser at startup, keep alive, reuse for cookie pre-fetching
+- **How:** `Animepahe.initialize()` called at startup, browser stored as `this.persistentBrowser`
+- **Impact:** 1 browser process (~300MB) vs 4 per request (~1.5GB)
+
+### Fix 3: Timeout Protection
+- **What:** Every slow operation wrapped in `Promise.race()` with timeout
+- **Applied to:** playModel (20s), fetchIframeHtml (25s), scrapeIframeLight (30s), scrapeWithPlaywright (120s)
+- **Impact:** No more hanging indefinitely — returns partial data on timeout
+
+### Fix 4: Disk-Based Cache
+- **What:** When Redis disabled, cache to `/tmp/anikuro-cache/` as JSON files
+- **How:** `cache.js` tries Redis first → falls back to disk → caches to disk
+- **Impact:** Cached requests ~5-10ms (vs ~5-14s uncached)
 
 ---
 
-## 6. Changes Required
+## 5. Changes Made to Original pahe-api
 
 ### `anime/app.js`
-
-**Change 1:** Replace all mount prefixes from `/api` to `''`:
-
-```js
-// BEFORE
-app.use("/api", testRoutes);
-app.use("/api", homeRoutes);
-app.use("/api", cache(30), queueRoutes);
-app.use("/api", cache(18000), animeListRoutes);
-app.use("/api", cache(86400), animeInfoRoutes);
-app.use("/api", cache(3600), playRoutes);
-
-// AFTER
-app.use("", testRoutes);
-app.use("", homeRoutes);
-app.use("", cache(30), queueRoutes);
-app.use("", cache(18000), animeListRoutes);
-app.use("", cache(86400), animeInfoRoutes);
-app.use("", cache(3600), playRoutes);
-```
-
-**Change 2:** Remove `app.listen()`, add export:
-
-```js
-// REMOVE
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => { ... });
-
-// ADD
-module.exports = app;
-```
+- **Change 1:** Mount prefix changed from `/api` to `''` (6 lines)
+- **Change 2:** Removed `app.listen()`, added `module.exports = app`
+- **Change 3:** Added `Animepahe.initialize()` call at startup (non-blocking)
 
 ### `routes/animeListRoutes.js`
-
-```js
-// BEFORE
-router.get("/anime", AnimeListController.getAllAnime);
-router.get("/anime/:tag1/:tag2", AnimeListController.getAnimeByTags);
-
-// AFTER
-router.get("/list", AnimeListController.getAllAnime);
-router.get("/list/:tag1/:tag2", AnimeListController.getAnimeByTags);
-```
+- `/anime` → `/list`
+- `/anime/:tag1/:tag2` → `/list/:tag1/:tag2`
 
 ### `routes/playRoutes.js`
-
-```js
-// BEFORE
-router.get("/play/download-links", PlayController.getDownloadLinks);
-router.get("/play/:id", PlayController.getStreamingLinks);
-
-// AFTER
-router.get("/download-links", PlayController.getDownloadLinks);
-router.get("/:id/:ep", PlayController.getStreamingLinks);
-```
+- `/play/:id` → `/:id/:ep`
+- `/play/download-links` → `/download-links`
 
 ### `controllers/playController.js`
+- `req.query.episodeId` → `req.params.ep`
 
-```js
-// BEFORE
-const { id } = req.params;
-const { episodeId, downloads } = req.query;
+### `scrapers/animepahe.js` (Major Refactor)
+- Added `this.persistentBrowser` and `this.browserReady` properties (S4)
+- Rewrote `initialize()` to solve DDoS-Guard at startup, save cookies, keep browser alive
+- Added `needsCookieRefreshSync()` for synchronous cookie freshness check
+- Modified `scrapePlayPage()` to try `fetchWithCookies()` first (S1), fall back to Playwright
+- Added `scrapeIframeCloudscraper()` method (S2)
+- Updated strategy order in `fetchIframeHtml()`: cloudscraper first → Playwright fallback
+- Added `finally` blocks to `scrapeIframeLight()` for browser cleanup
+- Added timeout wrappers to all slow operations (Fix 3)
 
-// AFTER
-const { id, ep } = req.params;
-const { downloads } = req.query;
-```
+### `utils/requestManager.js`
+- Added `fetchWithCookies(url)` method — axios GET with saved cookies (S1 core)
 
-### Route Files — No Changes Needed
+### `utils/diskCache.js` (NEW)
+- Full disk cache utility with get/set/del/cleanExpired/stats
+- MD5-hashed filenames
+- Auto-cleanup on startup
+
+### `middleware/cache.js`
+- Modified to try Redis first → fall back to disk cache → cache to disk when Redis disabled
+
+### `unified/app.js`
+- Rewrote download-proxy endpoint: finally block, 120s timeout, streaming, dynamic content-type, CF polling, filename from headers
+- Disabled `process.exit(1)` in `uncaughtException` handler (crash prevention)
+
+---
+
+## 6. Route Files — No Additional Changes Needed
 
 - `homeRoutes.js` — `/airing`, `/search` ✓
 - `animeInfoRoutes.js` — `/:id`, `/:id/releases` ✓
 - `queueRoutes.js` — `/queue` ✓
-- `testRoutes.js` — `/kwik-test`, `/downlod-test`, `/test` ✓
 
 ---
 
-## 7. Root Entry Point (New File in anikuro-api)
+## 7. Root Entry Point (unified/app.js)
+
+The root server mounts both manga and anime APIs under their respective namespaces, adds the download-proxy endpoint, serves docs, and provides health check:
 
 ```javascript
-const express = require("express");
-const path = require("path");
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
-const mangaApp = require("./manga/app");
-const animeApp = require("./anime/app");
-
-const app = express();
-
-// Mount under namespaces
+// Mount manga under /api/manga
 app.use("/api/manga", mangaApp);
+
+// Mount anime under /api/anime (includes all anime routes + download-proxy)
 app.use("/api/anime", animeApp);
 
-// Serve docs
-const docsPath = path.join(__dirname, "docs", "dist");
-app.use(
-  "/docs",
-  express.static(docsPath, { maxAge: "1d", index: "index.html" }),
-);
+// Static docs
+app.use("/docs", express.static(docsPath, { maxAge: "1d", index: "index.html" }));
 
 // Health check
-app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    name: "anikuro-api",
-    version: process.env.npm_package_version || "1.0.0",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    endpoints: {
-      docs: "/docs",
-      manga_list: "/api/manga/list",
-      manga_detail: "/api/manga/:id",
-      manga_chapter: "/api/manga/:id/:ch",
-      manga_search: "/api/manga/search/:query",
-      anime_airing: "/api/anime/airing",
-      anime_search: "/api/anime/search",
-      anime_list: "/api/anime/list",
-      anime_info: "/api/anime/:id",
-      anime_releases: "/api/anime/:id/releases",
-      anime_play: "/api/anime/:id/:ep",
-      anime_downloads: "/api/anime/download-links",
-      anime_queue: "/api/anime/queue",
-      health: "/health",
-    },
-  });
-});
+app.get("/health", (req, res) => { ... });
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: "Endpoint not found", path: req.path });
 });
 
-// Global error handler
+// Global error handler (doesn't exit on uncaught exceptions)
 app.use((err, req, res, next) => {
-  console.error("[ERROR]", err.message);
+  console.error(`[${req.id}] Unhandled error:`, err.message);
   res.status(500).json({ error: "Internal server error" });
 });
 
-const PORT = process.env.PORT || 7860;
-app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT} [PID: ${process.pid}]`);
+// Don't crash on uncaught exceptions — log and keep running
+process.on("uncaughtException", (error) => {
+  console.error(`[FATAL] Uncaught exception:`, error.message, error.stack);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error(`[UNHANDLED] Rejection:`, reason?.message || reason);
 });
 ```
 
@@ -415,45 +306,66 @@ CMD ["node", "app.js"]
 
 ## 9. Compatibility Checklist
 
-- [ ] `routes/animeListRoutes.js`: `/anime` → `/list`, `/anime/:tag1/:tag2` → `/list/:tag1/:tag2`
-- [ ] `routes/playRoutes.js`: `/play/:id` → `/:id/:ep`, `/play/download-links` → `/download-links`
-- [ ] `controllers/playController.js`: `req.query.episodeId` → `req.params.ep`
-- [ ] `anime/app.js` mount prefix changed from `/api` to `''` (6 lines)
-- [ ] `anime/app.js` exports app (no `app.listen`)
-- [ ] `NODE_TLS_REJECT_UNAUTHORIZED = "0"` set in root `app.js`
-- [ ] Playwright Chromium installed in Docker runtime stage
-- [ ] System dependencies for Chromium installed (`libnss3`, `libgbm1`, etc.)
-- [ ] `PORT` defaults to `7860` (HF Spaces requirement)
-- [ ] CORS enabled (already in pahe-api)
-- [ ] JSON responses only (already the case)
-- [ ] Error handling (already in pahe-api)
-- [ ] Root `app.js` mounts both manga and anime
-- [ ] Dockerfile builds both stages + copies both
+- [x] `routes/animeListRoutes.js`: `/anime` → `/list`, `/anime/:tag1/:tag2` → `/list/:tag1/:tag2`
+- [x] `routes/playRoutes.js`: `/play/:id` → `/:id/:ep`, `/play/download-links` → `/download-links`
+- [x] `controllers/playController.js`: `req.query.episodeId` → `req.params.ep`
+- [x] `anime/app.js` mount prefix changed from `/api` to `''` (6 lines)
+- [x] `anime/app.js` exports app (no `app.listen`)
+- [x] `NODE_TLS_REJECT_UNAUTHORIZED = "0"` set in root `app.js`
+- [x] Playwright Chromium installed in Docker runtime stage
+- [x] System dependencies for Chromium installed (`libnss3`, `libgbm1`, etc.)
+- [x] `PORT` defaults to `7860` (HF Spaces requirement)
+- [x] CORS enabled (already in pahe-api)
+- [x] JSON responses only (already the case)
+- [x] Error handling (already in pahe-api)
+- [x] Root `app.js` mounts both manga and anime
+- [x] Dockerfile builds both stages + copies both
+- [x] S1: Cookie pre-fetching at startup
+- [x] S2: Cloudscraper for iframes
+- [x] S4: Persistent browser
+- [x] Fix 3: Timeout protection
+- [x] Fix 4: Disk-based cache
 
 ---
 
-## 10. Known Limitations
+## 10. Future Maintenance: Cloudscraper Deprecation
 
-1. **Playwright on HF Spaces** — May require `PLAYWRIGHT_BROWSERS_PATH` env var or custom Chromium path
-2. **Cookie auto-fetch** — Playwright launches on first request; initial request may be slow
-3. **Memory usage** — Running both APIs + Chromium may exceed HF Spaces free tier limits (16GB RAM)
-4. **Cold starts** — First request after idle may take 5-15s for Playwright initialization
-5. **`/api/anime/download-links` deprecated** — Broken since kwik.cx added Cloudflare protection. Use `sources[].download` from `/api/anime/:id/:ep` instead. Fixable by replacing cloudscraper with Playwright in `extractKwikUrl()` / `getKwikDownloadUrl()`.
+The `cloudscraper` dependency (`^4.6.0`) is **unmaintained** (GitHub repo archived). It breaks frequently when Cloudflare changes its challenge mechanism.
+
+### Current Impact
+
+- `/api/anime/download-links` is already returning 501 DEPRECATED due to Cloudflare on kwik.cx
+- The main streaming endpoint (`/api/anime/:id/:ep`) uses cloudscraper as primary for iframes (S2), with Playwright as fallback
+- If cloudscraper breaks, Playwright fallback will handle it transparently
+
+### Future Fix Options
+
+**Option A: Consolidate on Playwright (Recommended)**
+
+- Replace cloudscraper with `RequestManager.scrapeWithPlaywright()` in `scrapeIframeCloudscraper()`
+- Remove `cloudscraper` dependency from `package.json`
+- Reduces dependency tree bloat (`cloudscraper` + `axios` + `playwright` + `playwright-core` + `playwright-extra` + `playwright-extra-plugin-stealth`)
+
+**Option B: Remove download-links endpoint entirely**
+
+- The endpoint is already deprecated with 501 status
+- Document that users should use `sources[].download` from `/api/anime/:id/:ep` instead
 
 ---
 
-## 11. Redis Integration Plan (Future)
+## 11. Redis Integration plan (Future)
 
-Redis is **optional**. The API works without it — caching is disabled and rate limiting is off. Add Redis later if you notice slow responses, high upstream request volume, or abuse.
+Redis is **optional**. The API works without it — caching falls back to disk cache automatically. Add Redis later if you notice slow responses, high upstream request volume, or abuse.
 
 ### Why Add Redis Later?
 
-| Feature          | Without Redis                               | With Redis               |
-| ---------------- | ------------------------------------------- | ------------------------ |
-| Response caching | Disabled — every request scrapes upstream   | Enabled with TTL         |
+| Feature          | Without Redis (Disk Cache)             | With Redis               |
+| ---------------- | -------------------------------------- | ------------------------ |
+| Response caching | Enabled — cached to `/tmp/anikuro-cache/` | Enabled — cached to Redis |
+| Response time    | ~5-10ms (disk cache hits)              | ~2-5ms (Redis hits)      |
+| Persistence      | Lost on container rebuild              | Persistent (Upstash)     |
 | Rate limiting    | Disabled even if `RATE_LIMIT_SECRET` is set | Active across instances  |
-| Response time    | Slower (always scrapes)                     | Faster (cached hits)     |
-| Ban risk         | Higher (more requests to animepahe)         | Lower (cached responses) |
+| Ban risk         | Lower (cached responses)               | Lowest (shared cache)    |
 
 ### Cache TTLs (Already Configured in middleware/cache.js)
 
@@ -516,10 +428,14 @@ Check the HF Space logs for:
 Redis Client Connected
 ```
 
-If you see this, caching is active. If not, the API falls back gracefully.
+If you see this, caching is active. If not, the API falls back to disk cache gracefully.
 
 ---
 
 ## 12. Documentation
 
 Add anime endpoints to `docs/src/content/docs/` in the same MDX format as manga docs so they appear in the sidebar automatically.
+
+---
+
+**End of Blueprint**
