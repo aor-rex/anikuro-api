@@ -34,6 +34,8 @@ Animepahe.initialize().catch((err) =>
 const router = express.Router();
 
 // ─── Anime routes ───
+// NOTE: animeInfoRoutes (/:id, /:id/releases) MUST come before playRoutes (/:id/:ep)
+// so that /:id/releases is matched before /:id/:ep treats "releases" as an episode ID.
 router.use("", homeRoutes);
 router.use("", cache(30), queueRoutes); // 30 seconds
 router.use("", cache(18000), animeListRoutes); // 5 hours

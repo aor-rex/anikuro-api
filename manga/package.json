@@ -1,6 +1,5 @@
 {
   "name": "anikuro-api-manga",
-  "version": 2,
   "builds": [
     {
       "src": "index.js",

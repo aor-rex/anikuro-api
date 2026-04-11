@@ -51,7 +51,7 @@ const cache = (duration) => async (req, res, next) => {
 
         next();
     } catch (error) {
-        console.error('Cache error:', error);
+        console.error('Cache error:', error.message);
         next();
     }
 };

@@ -33,6 +33,19 @@ app.use(requestId);
 app.use(cors());
 app.use(bodyParser.json());
 
+// ─── Fix #8: Response compression (gzip/brotli) ───
+// Saves 60-80% bandwidth on JSON responses. Critical for HF Spaces bandwidth limits.
+const compression = require("compression");
+app.use(compression({ threshold: 1024 })); // Only compress responses > 1KB
+
+// ─── Fix #9: Request timeout ───
+// Prevents slow requests from holding connections indefinitely.
+app.use((req, res, next) => {
+  req.setTimeout(90000);
+  res.setTimeout(90000);
+  next();
+});
+
 // Request logging
 app.use((req, res, next) => {
   const start = Date.now();
@@ -53,135 +66,30 @@ app.use((req, res, next) => {
 });
 
 // ─── Manga routes (/api/manga/*) ───
-app.use("/api/manga/list", mangaListRouter);
-app.use("/api/manga/search", mangaSearch);
-app.use("/api/manga", mangaRouter);
+// ─── Fix #5: Add response caching to manga endpoints ───
+// MangaBuddy content changes slowly. Caching eliminates 90%+ of upstream requests.
+const cache = require("../anime/middleware/cache");
+app.use("/api/manga/list", cache(300), mangaListRouter);     // 5 min
+app.use("/api/manga/search", cache(120), mangaSearch);       // 2 min
+app.use("/api/manga", cache(3600), mangaRouter);             // 1 hour — details/chapters rarely change
+
+// ─── Download Proxy (/api/anime/download-proxy?url=...) ───
+// DEPRECATED: This endpoint launches a headless browser to bypass Cloudflare.
+// It is resource-intensive (300MB+ RAM per request), has a 120s timeout,
+// and is not suitable for production use without concurrency limits.
+// Use /api/anime/:id/:ep instead — direct m3u8 stream URLs are provided
+// under sources[].url and download proxy URLs under sources[].download.
+app.get("/api/anime/download-proxy", async (_req, res) => {
+  return res.status(501).json({
+    status: 501,
+    message: "DEPRECATED: This endpoint is deprecated due to heavy resource usage.",
+    workaround: "Use /api/anime/:id/:ep instead. m3u8 streams are under sources[].url and download proxies under sources[].download.",
+  });
+});
 
 // ─── Anime routes (/api/anime/*) ───
 // The anime app exports an Express app, mount it as a router
 app.use("/api/anime", animeApp);
-
-// ─── Download Proxy (/api/anime/download-proxy?url=...) ───
-// Uses Playwright to bypass Cloudflare on CDN and stream file to client
-app.get("/api/anime/download-proxy", async (req, res) => {
-  const { url } = req.query;
-
-  if (!url || !url.startsWith("https://")) {
-    return res.status(400).json({ error: "Valid URL required" });
-  }
-
-  const DOWNLOAD_TIMEOUT = 120000; // 120s hard timeout
-  let browser = null;
-
-  try {
-    console.log(
-      `[Download Proxy] Solving Cloudflare for: ${url.substring(0, 80)}...`,
-    );
-    const start = Date.now();
-
-    const { chromium } = require("playwright");
-
-    // Wrap entire operation with global timeout
-    await Promise.race([
-      (async () => {
-        browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage();
-
-        // Navigate to CDN URL (Playwright solves Cloudflare)
-        const response = await page.goto(url, {
-          waitUntil: "domcontentloaded",
-          timeout: 30000,
-        });
-
-        // Poll for CF challenge completion instead of fixed wait
-        try {
-          await page.waitForFunction(
-            () => {
-              return (
-                !document.title.toLowerCase().includes("just a moment") &&
-                !document.title.toLowerCase().includes("please wait") &&
-                !window.location.href.includes("cdn-cgi/challenge")
-              );
-            },
-            { timeout: 30000 },
-          );
-        } catch {
-          console.log("[Download Proxy] CF poll timed out, proceeding anyway");
-        }
-
-        // Check if still on CF challenge page
-        const currentUrl = page.url();
-        if (currentUrl.includes("cdn-cgi/challenge")) {
-          return res.status(502).json({
-            error: "Cloudflare challenge not solved",
-            message: "CDN protection too strong. Try another episode.",
-          });
-        }
-
-        // Check if we got the actual file (not HTML error page)
-        const contentType = await page.evaluate(() => document.contentType);
-        if (contentType === "text/html") {
-          // Might still be an HTML page with file content or error
-          const pageText = await page.evaluate(() => document.body.innerText.substring(0, 200));
-          if (pageText.toLowerCase().includes("just a moment") || pageText.toLowerCase().includes("error")) {
-            return res.status(502).json({
-              error: "Download page returned HTML error",
-              message: pageText.substring(0, 200),
-            });
-          }
-        }
-
-        console.log("[Download Proxy] CF solved, streaming file to client...");
-
-        // Get response headers from the navigation
-        const headers = response.headers();
-        const contentLength = headers["content-length"] || headers["content-length"];
-
-        // Extract filename from Content-Disposition header or URL path
-        const contentDisposition = headers["content-disposition"] || "";
-        const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
-        const filename = filenameMatch?.[1] || url.split("/").pop()?.split("?")[0] || "download.mp4";
-
-        // Detect content type from response
-        const mimeType = headers["content-type"] || "application/octet-stream";
-
-        // Set response headers
-        res.setHeader("Content-Type", mimeType);
-        res.setHeader("Content-Disposition", `attachment; filename="${decodeURIComponent(filename)}"`);
-        if (contentLength) {
-          res.setHeader("Content-Length", contentLength);
-        }
-        res.setHeader("Cache-Control", "public, max-age=3600");
-
-        // Stream the response body directly to client
-        const responseBody = await response.body();
-        const elapsed = Date.now() - start;
-        const sizeMB = (responseBody.length / 1024 / 1024).toFixed(1);
-        console.log(
-          `[Download Proxy] ✅ Streamed ${sizeMB} MB in ${(elapsed / 1000).toFixed(1)}s`,
-        );
-
-        res.end(responseBody);
-      })(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Download proxy timed out")), DOWNLOAD_TIMEOUT),
-      ),
-    ]);
-  } catch (error) {
-    console.error(`[Download Proxy] Error:`, error.message);
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: "Download failed",
-        message: error.message,
-      });
-    }
-  } finally {
-    // Always close the browser, even if an error occurred
-    if (browser) {
-      await browser.close().catch(() => {});
-    }
-  }
-});
 
 // ─── Static docs ───
 const docsPath = path.join(__dirname, "..", "docs", "dist");
@@ -247,12 +155,17 @@ app.use((req, res) => {
 
 // ─── Global error handler ───
 app.use((err, req, res, next) => {
-  console.error(`[${req.id}] Unhandled error:`, err.message);
-  const response = { error: "Internal server error" };
+  // Check CustomError.statusCode first, then HTTP response status
+  const statusCode = err.statusCode || err.response?.status || 500;
+  const message = err.message || "Something went wrong";
+
+  console.error(`[${req.id}] Error: ${message} (${statusCode})`);
+
+  const response = { error: message };
   if (process.env.NODE_ENV !== "production") {
     response.stack = err.stack;
   }
-  res.status(500).json(response);
+  res.status(statusCode).json(response);
 });
 
 // ─── Graceful shutdown ───
@@ -268,8 +181,12 @@ process.on("unhandledRejection", (reason, promise) => {
 
 process.on("uncaughtException", (error) => {
   console.error(`[FATAL] Uncaught exception:`, error.message, error.stack);
-  // Don't exit — log and keep serving requests
-  // setTimeout(() => process.exit(1), 1000);
+  // Graceful shutdown — HF Spaces auto-restarts the container.
+  // A zombie server serving all errors is worse than a 30s restart.
+  if (server) {
+    server.close(() => process.exit(1));
+  }
+  setTimeout(() => process.exit(1), 30000); // Force kill after 30s
 });
 
 process.on("SIGTERM", () => {
@@ -278,6 +195,6 @@ process.on("SIGTERM", () => {
 });
 
 const PORT = process.env.PORT || 7860;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server started on port ${PORT} [PID: ${process.pid}]`);
 });

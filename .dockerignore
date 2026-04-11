@@ -11,6 +11,7 @@ docs/node_modules/
 .qwenignore
 .vscode/
 .idea/
+learning/
 
 # OS
 .DS_Store
@@ -25,3 +26,18 @@ next exemple/
 # Misc
 *.md
 LICENSE
+ANIME_API_BLUEPRINT.md
+index.md
+RULE.md
+SERVE_TIME.md
+STREAMING_INVESTIGATION.md
+SCOPE.md
+
+test.sh
+test-server.js
+.codex
+optimization.md
+
+todo.md
+analysis.md
+endpoints.md

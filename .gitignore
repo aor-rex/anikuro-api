@@ -17,6 +17,8 @@ Thumbs.db
 .vscode/
 .idea/
 
+learning/
+
 # Build output
 dist/
 build/
@@ -25,13 +27,7 @@ build/
 .qwenignore
 
 
-ANIME_API_BLUEPRINT.md
-index.md
-RULE.md
-SERVE_TIME.md
-STREAMING_INVESTIGATION.md
-SCOPE.md
-
-test.sh
-test-server.js
-.codex
+*test*
+.md/
+*.md
+!README.md

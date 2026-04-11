@@ -52,8 +52,12 @@ function getRandomHeaders() {
   };
 }
 
-// Request queue for rate limiting
-let lastRequestTime = 0;
+// ─── Fix #6: Serialized request queue ───
+// Replaces the race-condition-prone lastRequestTime approach.
+// Guarantees 1 request per 1.2-2.5s to MangaBuddy upstream.
+// Concurrent requests wait in queue — no IP ban risk.
+let requestQueue = Promise.resolve();
+
 const MIN_DELAY = 1200; // Minimum 1.2s between requests to upstream
 const MAX_DELAY = 2500; // Maximum 2.5s
 
@@ -62,13 +66,17 @@ function getRandomDelay() {
 }
 
 async function rateLimit() {
-  const now = Date.now();
-  const elapsed = now - lastRequestTime;
-  const delay = Math.max(0, getRandomDelay() - elapsed);
-  if (delay > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-  lastRequestTime = Date.now();
+  // Each call chains to the previous one, ensuring serialization
+  const currentQueue = requestQueue;
+  let resolveQueue;
+  requestQueue = new Promise((resolve) => {
+    resolveQueue = resolve;
+  });
+
+  await currentQueue;
+  const delay = getRandomDelay();
+  await new Promise((resolve) => setTimeout(resolve, delay));
+  resolveQueue();
 }
 
 // FIX Bug #6: Redirect tracking without recursion issues

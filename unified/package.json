@@ -1,17 +1,20 @@
 {
   "name": "anikuro-api-unified",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "private": true,
   "scripts": {
     "start": "nodemon app.js",
     "dev": "nodemon app.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
     "axios": "^1.13.5",
-    "playwright": "^1.52.0",
-    "nodemon": "^3.1.9"
+    "body-parser": "^1.20.2",
+    "cheerio": "1.0.0-rc.12",
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "nodemon": "^3.1.9",
+    "p-limit": "^5.0.0",
+    "playwright": "^1.59.1"
   }
 }

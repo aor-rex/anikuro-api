@@ -10,9 +10,40 @@ const os = require("os");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Module-level cache for iframe HTML (persists across all requests)
+// ─── Fix #1: Global concurrency limit for browser operations ───
+// Prevents OOM crash under load. Max 5 concurrent browser operations server-wide.
+// Others wait in queue. Uses p-limit (zero sub-deps, ~1KB).
+const pLimitModule = require("p-limit");
+const pLimit = pLimitModule.default || pLimitModule;
+const browserLimit = pLimit(5);
+
+// ─── Fix #2: IFRAME_CACHE with size cap + periodic cleanup ───
+// Prevents unbounded memory growth → OOM over hours/days.
 const IFRAME_CACHE = new Map();
 const IFRAME_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+const IFRAME_CACHE_MAX_SIZE = 500;
+const IFRAME_CACHE_CLEANUP_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+setInterval(() => {
+  const now = Date.now();
+  let evicted = 0;
+  // Evict expired entries
+  for (const [key, val] of IFRAME_CACHE.entries()) {
+    if (now - val.timestamp > IFRAME_CACHE_TTL) {
+      IFRAME_CACHE.delete(key);
+      evicted++;
+    }
+  }
+  // Enforce max size (evict oldest first)
+  while (IFRAME_CACHE.size > IFRAME_CACHE_MAX_SIZE) {
+    const oldestKey = IFRAME_CACHE.keys().next().value;
+    IFRAME_CACHE.delete(oldestKey);
+    evicted++;
+  }
+  if (evicted > 0) {
+    console.log(`[IFRAME_CACHE] Evicted ${evicted} entries (size: ${IFRAME_CACHE.size})`);
+  }
+}, IFRAME_CACHE_CLEANUP_INTERVAL);
 
 class Animepahe {
   constructor() {
@@ -218,6 +249,7 @@ class Animepahe {
     if (this.isRefreshingCookies) return;
     this.isRefreshingCookies = true;
 
+    return browserLimit(async () => {
     let browser = this.activeBrowser;
 
     try {
@@ -299,6 +331,7 @@ class Animepahe {
     } finally {
       this.isRefreshingCookies = false;
     }
+    });
   }
 
   async getCookies(userProvidedCookies = null) {
@@ -438,6 +471,7 @@ class Animepahe {
 
     const url = Config.getUrl("play", { id, episodeId });
 
+    return browserLimit(async () => {
     // ─── FAST PATH: Try axios with saved cookies (no browser) ───
     // This is Strategy 1: uses cookies pre-fetched at server startup.
     // If cookies are valid, this takes ~0.5-2s instead of ~40-60s with Playwright.
@@ -496,6 +530,7 @@ class Animepahe {
       }
       throw error;
     }
+    });
   }
 
   async fetchIframeHtml(id, episodeId, url) {
@@ -1036,6 +1071,7 @@ class Animepahe {
       return cached.html;
     }
 
+    return browserLimit(async () => {
     const GLOBAL_TIMEOUT = 30000; // 30s total for entire browser operation
     let browser = null;
 
@@ -1093,6 +1129,7 @@ class Animepahe {
         await browser.close().catch(() => {});
       }
     }
+    });
   }
 
   async getData(type, params, preferFetch = true) {

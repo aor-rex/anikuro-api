@@ -6,7 +6,14 @@ const { existsSync } = require("fs");
 // Cache directory — use /tmp for ephemeral storage (HF Spaces compatible)
 const CACHE_DIR = process.env.DISK_CACHE_DIR || path.join("/tmp", "anikuro-cache");
 
+// ─── Fix #3: Disk cache size limit ───
+// Prevents /tmp from filling up on HF Spaces (limited disk space).
+// When cache exceeds 200MB, oldest entries are evicted.
+const MAX_DISK_CACHE_BYTES = 200 * 1024 * 1024; // 200MB
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
 let initialized = false;
+let cleanupIntervalStarted = false;
 
 /**
  * Initialize the disk cache directory. Creates it if it doesn't exist.
@@ -63,6 +70,7 @@ async function get(key) {
 
 /**
  * Set a cached response on disk with TTL.
+ * Evicts oldest entries when cache exceeds MAX_DISK_CACHE_BYTES.
  */
 async function set(key, data, duration) {
   if (!initialized) await init();
@@ -77,6 +85,40 @@ async function set(key, data, duration) {
 
     await fs.writeFile(filePath, JSON.stringify(entry), "utf8");
     console.log(`[Disk Cache] 💾 SET: ${key.substring(0, 60)}...`);
+
+    // ─── Fix #3: Enforce max cache size ───
+    // After writing, check total size and evict oldest if over limit
+    try {
+      const files = await fs.readdir(CACHE_DIR);
+      const jsonFiles = files.filter(f => f.endsWith(".json"));
+
+      // Get file stats sorted by modification time (oldest first)
+      const fileStats = await Promise.all(
+        jsonFiles.map(async (file) => {
+          const filePath = path.join(CACHE_DIR, file);
+          const stat = await fs.stat(filePath);
+          return { path: filePath, mtime: stat.mtimeMs, size: stat.size };
+        })
+      );
+      fileStats.sort((a, b) => a.mtime - b.mtime);
+
+      let totalSize = fileStats.reduce((sum, f) => sum + f.size, 0);
+
+      // Evict oldest files until under limit
+      let evicted = 0;
+      for (const file of fileStats) {
+        if (totalSize <= MAX_DISK_CACHE_BYTES) break;
+        await fs.unlink(file.path).catch(() => {});
+        totalSize -= file.size;
+        evicted++;
+      }
+      if (evicted > 0) {
+        console.log(`[Disk Cache] Evicted ${evicted} entries (size: ${(totalSize / 1024 / 1024).toFixed(1)}MB)`);
+      }
+    } catch (err) {
+      // Non-fatal — cache failures should not break the app
+      console.error("[Disk Cache] Size enforcement error:", err.message);
+    }
   } catch (error) {
     console.error("[Disk Cache] Set error:", error.message);
     // Don't throw — cache failures should not break the app
@@ -163,9 +205,15 @@ async function stats() {
   }
 }
 
-// Auto-clean expired entries on startup (non-blocking)
+// Auto-clean expired entries on startup + periodic cleanup every 10 minutes
 init().then(() => {
   cleanExpired();
+  if (!cleanupIntervalStarted) {
+    cleanupIntervalStarted = true;
+    setInterval(() => {
+      cleanExpired();
+    }, CLEANUP_INTERVAL_MS);
+  }
 });
 
 module.exports = {
@@ -176,4 +224,5 @@ module.exports = {
   cleanExpired,
   stats,
   CACHE_DIR,
+  MAX_DISK_CACHE_BYTES,
 };

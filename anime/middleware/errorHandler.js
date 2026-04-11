@@ -8,7 +8,9 @@ class CustomError extends Error {
 }
 
 const errorHandler = (err, req, res, next) => {
-  const statusCode = err.response?.status || err.statusCode || 500;
+  // Check err.statusCode first (CustomError sets this correctly)
+  // before falling back to err.response?.status for HTTP errors
+  const statusCode = err.statusCode || err.response?.status || 500;
   const message = err.message || "Something went wrong";
 
   console.error(`Error: ${message} (Status Code: ${statusCode})`);

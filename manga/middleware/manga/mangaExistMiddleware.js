@@ -27,6 +27,13 @@ const mangaExist = (req, res, next) => {
     })
     .catch((e) => {
       console.error("mangaExist error:", e.message);
+      // If upstream returned 404, pass it through
+      if (e.message && e.message.includes("404")) {
+        return res.status(404).json({
+          state: 404,
+          message: "Manga Not Exist",
+        });
+      }
       res.status(500).json({
         state: 500,
         message: "Something went wrong",
