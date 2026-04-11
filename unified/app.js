@@ -106,7 +106,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     name: "anikuro api",
-    version: process.env.npm_package_version || "1.0.0",
+    version: require("./package.json").version,
     description: "your anime manga api gateway",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
