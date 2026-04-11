@@ -24,7 +24,7 @@ learning/
 dist/
 build/
 .venv
-.qwen
+.qwen/
 .qwenignore
 
 
