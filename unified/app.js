@@ -181,12 +181,9 @@ process.on("unhandledRejection", (reason, promise) => {
 
 process.on("uncaughtException", (error) => {
   console.error(`[FATAL] Uncaught exception:`, error.message, error.stack);
-  // Graceful shutdown — HF Spaces auto-restarts the container.
-  // A zombie server serving all errors is worse than a 30s restart.
-  if (server) {
-    server.close(() => process.exit(1));
-  }
-  setTimeout(() => process.exit(1), 30000); // Force kill after 30s
+  // Don't exit — log and keep serving requests
+  // HF Spaces may auto-restart on crash, but keeping the server alive
+  // allows recovery from transient errors.
 });
 
 process.on("SIGTERM", () => {
