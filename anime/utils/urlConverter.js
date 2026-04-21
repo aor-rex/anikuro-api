@@ -57,7 +57,10 @@ class UrlConverter {
     }
 
     /**
-     * Builds the full download URL with filename parameter
+     * Builds the full download URL with filename parameter and CDN headers
+     * Returns an object with url and headers for proper CDN access
+     * 
+     * @returns {Object} { url, headers } where headers contains Referer
      */
     static buildDownloadUrl(m3u8Url, kwikDomain, metadata) {
         const mp4Url = this.getMp4Url(m3u8Url, kwikDomain);
@@ -72,7 +75,17 @@ class UrlConverter {
             metadata.isBD
         );
         
-        return `${mp4Url}?file=${filename}`;
+        const downloadUrl = `${mp4Url}?file=${filename}`;
+        
+        const headers = {
+            Referer: 'https://animepahe.pw/',
+            Origin: 'https://animepahe.pw',
+        };
+        
+        return {
+            url: downloadUrl,
+            headers,
+        };
     }
 }
 

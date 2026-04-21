@@ -329,7 +329,7 @@ class PlayModel {
             
             const processedSources = allSources.flat().map(source => {
                 if (includeDownloads && source.url && source.isM3U8) {
-                    const downloadUrl = UrlConverter.buildDownloadUrl(
+                    const downloadResult = UrlConverter.buildDownloadUrl(
                         source.url,
                         Config.iframeBaseUrl,
                         {
@@ -342,11 +342,11 @@ class PlayModel {
                         }
                     );
                     
-                    if (downloadUrl) {
-                        source.download = downloadUrl;
-                        // Key format: "720-SubsPlease-false-true" (res-fansub-isDub-isBD)
+                    if (downloadResult) {
+                        source.download = downloadResult.url;
+                        source.downloadHeaders = downloadResult.headers;
                         const key = `${source.resolution}-${source.fanSub || 'default'}-${source.isDub}-${source.isBD}`;
-                        fastDownloadMap.set(key, downloadUrl);
+                        fastDownloadMap.set(key, downloadResult);
                     }
                 }
                 return source;
@@ -355,13 +355,13 @@ class PlayModel {
             playInfo.sources = processedSources;
             
             if (includeDownloads) {
-                // Hydrate the metadata list with our fast links
                 const hydratedDownloads = metadataList.map(item => {
                     const key = `${item.resolution}-${item.fansub || 'default'}-${item.isDub}-${item.isBD}`;
-                    const fastDownload = fastDownloadMap.get(key);
+                    const downloadResult = fastDownloadMap.get(key);
                     
-                    if (fastDownload) {
-                        item.download = fastDownload;
+                    if (downloadResult) {
+                        item.download = downloadResult.url;
+                        item.downloadHeaders = downloadResult.headers;
                     }
                     return item;
                 });
@@ -376,6 +376,11 @@ class PlayModel {
             playInfo.sources.forEach(s => delete s.isBD);
             if (playInfo.downloads) {
                 playInfo.downloads.forEach(d => delete d.isBD);
+            }
+            
+            const cdnCookies = Animepahe.getCdnCookies();
+            if (cdnCookies) {
+                playInfo.cdnCookies = cdnCookies;
             }
         } catch (error) {
             console.error('Error in scrapePlayPage:', error);

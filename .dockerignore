@@ -12,7 +12,7 @@ docs/node_modules/
 .vscode/
 .idea/
 learning/
-
+.codex 
 # OS
 .DS_Store
 Thumbs.db

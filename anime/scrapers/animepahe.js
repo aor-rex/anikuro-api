@@ -47,27 +47,17 @@ setInterval(() => {
 
 class Animepahe {
   constructor() {
-    // Use /tmp directory for Vercel
     this.cookiesPath = path.join("/tmp", "cookies.json");
     this.cookiesRefreshInterval = 14 * 24 * 60 * 60 * 1000; // 14 days
     this.isRefreshingCookies = false;
     this.activeBrowser = null;
     this.cloudflareSessionCookies = null;
 
-    // tracking for current kwik request
     this.currentKwikRequest = null;
+    
+    this.cdnCookies = null;
+    this.lastIframeCookies = null;
 
-    // ─── S4: Persistent browser instance kept alive for the server's lifetime ───
-    // WHY THIS EXISTS:
-    // Previously, every request launched a NEW browser (~3-5s launch overhead).
-    // Now we launch ONE browser at startup, solve DDoS-Guard once, save the
-    // cookies, and keep the browser alive as a fallback.
-    //
-    // Benefits:
-    // - Cookie pre-fetching solves DDoS-Guard once at startup (~30s one-time cost)
-    // - All subsequent requests use axios + saved cookies (~0.5-2s each)
-    // - Persistent browser available for Playwright fallback if cookies expire
-    // - Only 1 browser process instead of 4 per request (~300MB vs ~1.5GB)
     this.persistentBrowser = null;
     this.browserReady = false;
   }
@@ -542,15 +532,11 @@ class Animepahe {
 
     const IFRAME_STRATEGY_TIMEOUT = 25000; // 25s per strategy
 
-    // Strategy ordering: fastest/cheapest first, heavier fallbacks after.
-    // 1. cloudscraper — solves CF IUAM programmatically (~1-3s, no browser)
-    // 2. Playwright (scrapeIframeLight) — full browser if cloudscraper fails (~13-26s)
     const allStrategies = [
-      () => this.scrapeIframeCloudscraper(url),  // S2: fast path
-      () => this.scrapeIframeLight(url),          // Playwright fallback
+      () => this.scrapeIframeCloudscraper(url),
+      () => this.scrapeIframeLight(url),
     ];
 
-    // Process strategies in parallel, max 2 at a time
     const maxParallel = 2;
 
     for (let i = 0; i < allStrategies.length; i += maxParallel) {
@@ -560,7 +546,6 @@ class Animepahe {
       );
 
       const promises = batch.map(async (strategy, idx) => {
-        // Wrap each strategy with a timeout
         const strategyPromise = strategy();
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error(`Strategy timed out after ${IFRAME_STRATEGY_TIMEOUT / 1000}s`)), IFRAME_STRATEGY_TIMEOUT);
@@ -590,14 +575,13 @@ class Animepahe {
 
       const results = await Promise.all(promises);
 
-      // Check if any strategy in the batch succeeded
       const successfulResult = results.find((r) => r.success);
       if (successfulResult) {
+        this.lastIframeCookies = successfulResult.cookies || null;
         return successfulResult.result;
       }
     }
 
-    // If all strategies failed, throw error with all failure details
     throw new CustomError("All iframe fetching strategies failed", 503);
   }
 
@@ -959,7 +943,9 @@ class Animepahe {
           cookie.name.includes("__cf") ||
           cookie.name.includes("_cflb") ||
           cookie.domain.includes("kwik.si") ||
-          cookie.domain.includes(".si"),
+          cookie.domain.includes(".si") ||
+          cookie.domain.includes("uwucdn.top") ||
+          cookie.domain.includes("uWuCdn"),
       );
 
       if (relevantCookies.length > 0) {
@@ -1028,7 +1014,6 @@ class Animepahe {
 
       const html = response.body;
 
-      // Validate response — cloudscraper may return CF challenge HTML if it can't solve
       if (
         html &&
         html.length > 100 &&
@@ -1038,6 +1023,17 @@ class Animepahe {
       ) {
         console.log(`[Kwik Fetch] ✅ cloudscraper success (${html.length} bytes)`);
         IFRAME_CACHE.set(url, { html, timestamp: Date.now() });
+        if (response.headers) {
+          const setCookie = response.headers['set-cookie'];
+          if (setCookie) {
+            const cookieStr = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
+            const cookieData = cookieStr.split('; ')[0];
+            if (cookieData) {
+              this.cdnCookies = cookieData;
+              console.log(`[Kwik Fetch] CDN cookies captured`);
+            }
+          }
+        }
         return html;
       }
 
@@ -1176,7 +1172,6 @@ class Animepahe {
     } catch (error) {
       if (error instanceof CustomError) throw error;
 
-      // If we have an HTTP error response, use its status code
       if (error.response?.status) {
         throw new CustomError(
           error.message || "Request failed",
@@ -1184,13 +1179,16 @@ class Animepahe {
         );
       }
 
-      // Try fallback if primary method fails
       if (preferFetch) {
         return this.getData(type, params, false);
       }
 
       throw new CustomError(error.message || "Failed to get data", 503);
     }
+  }
+  
+  getCdnCookies() {
+    return this.cdnCookies || this.lastIframeCookies || null;
   }
 }
 
