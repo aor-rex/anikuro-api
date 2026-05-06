@@ -369,23 +369,35 @@ class Animepahe {
     return cookieHeader;
   }
 
-  async fetchApiData(endpoint, params = {}, userProvidedCookies = null) {
+  async fetchApiData(endpoint, params = {}, userProvidedCookies = null, forceBrowser = false) {
     try {
       const cookieHeader = await this.getCookies(userProvidedCookies);
       const url = new URL(endpoint, Config.getUrl("home")).toString();
+      
+      // Use browser-based fetch if forced (after cookie refresh)
+      if (forceBrowser) {
+        return await RequestManager.fetchApiDataWithBrowser(url, params);
+      }
+      
       return await RequestManager.fetchApiData(url, params, cookieHeader);
     } catch (error) {
-      // Only retry with automatic cookies if user didn't provide cookies
+      // Retry with browser fallback on auth errors (401, 403, 503)
       if (
         !userProvidedCookies &&
-        (error.response?.status === 401 || error.response?.status === 403)
+        !forceBrowser &&
+        (error.response?.status === 401 || 
+         error.response?.status === 403 || 
+         error.response?.status === 503 ||
+         error.statusCode === 503)
       ) {
+        console.log("[fetchApiData] Cookie invalid, refreshing and retrying with browser...");
         await this.refreshCookies();
-        return this.fetchApiData(endpoint, params, userProvidedCookies);
+        // Force browser-based fetch on retry
+        return this.fetchApiData(endpoint, params, userProvidedCookies, true);
       }
       throw new CustomError(
         error.message || "Failed to fetch API data",
-        error.response?.status || 503,
+        error.response?.status || error.statusCode || 503,
       );
     }
   }

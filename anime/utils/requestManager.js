@@ -557,6 +557,51 @@ class RequestManager {
       throw error;
     }
   }
+
+  /**
+   * Browser-based API fetch - uses Playwright instead of axios
+   * Used when cookies fail and we need to bypass DDoS-Guard
+   */
+  static async fetchApiDataWithBrowser(url, params) {
+    console.log(`[fetchApiDataWithBrowser] Using Playwright for: ${url}`);
+    
+    const { launchBrowser } = require("./browser");
+    const browser = await launchBrowser();
+    
+    try {
+      const context = await browser.newContext({
+        userAgent: Config.userAgent,
+      });
+      
+      const page = await context.newPage();
+      
+      // Build full URL with params
+      const fullUrl = new URL(url);
+      Object.keys(params).forEach(key => {
+        fullUrl.searchParams.append(key, params[key]);
+      });
+      
+      await page.goto(fullUrl.toString(), {
+        waitUntil: "networkidle",
+        timeout: 30000,
+      });
+      
+      // Wait for JSON response
+      await page.waitForFunction(() => {
+        const text = document.body.textContent;
+        return text.trim().startsWith('{') || text.trim().startsWith('[');
+      }, { timeout: 15000 });
+      
+      const content = await page.textContent();
+      const data = JSON.parse(content.trim());
+      
+      await context.close();
+      return data;
+      
+    } finally {
+      await browser.close();
+    }
+  }
 }
 
 module.exports = RequestManager;
