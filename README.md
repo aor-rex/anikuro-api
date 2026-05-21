@@ -72,7 +72,7 @@ https://aor-rex-anikuro-api.hf.space
 ### Run Locally
 
 ```bash
-git clone https://github.com/aor-rex/anikuro-api.git
+git clone https://gitlab.com/aor-rex/anikuro-api.git
 cd anikuro-api
 
 # Install & build

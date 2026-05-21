@@ -126,7 +126,7 @@ app.get("/health", (req, res) => {
       anime_episode: "/api/anime/:id/:ep",
       health: "/health",
     },
-    source: "https://github.com/aor-rex/anikuro-api",
+    source: "https://gitlab.com/aor-rex/anikuro-api",
   });
 });
 

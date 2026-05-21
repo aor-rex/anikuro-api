@@ -78,7 +78,7 @@ app.get("/health", (req, res) => {
       manga_search: "/api/manga/search/:query",
       health: "/health",
     },
-    source: "https://github.com/aor-rex/anikuro-api",
+    source: "https://gitlab.com/aor-rex/anikuro-api",
   });
 });
 

@@ -7,9 +7,11 @@ docs/node_modules/
 .gitignore
 
 # Editor
+.venv/
 .qwen/
 .qwenignore
 .vscode/
+.md/
 .idea/
 learning/
 .codex 
@@ -26,18 +28,10 @@ next exemple/
 # Misc
 *.md
 LICENSE
-ANIME_API_BLUEPRINT.md
-index.md
-RULE.md
-SERVE_TIME.md
-STREAMING_INVESTIGATION.md
-SCOPE.md
 
-test.sh
-test-server.js
+package-lock.json
+
 .codex
-optimization.md
+test*
 
-todo.md
-analysis.md
-endpoints.md
+!README.md
