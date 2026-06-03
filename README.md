@@ -1,3 +1,12 @@
+---
+title: Anikuro API
+emoji: 📚
+colorFrom: red
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # Anikuro API
 
 A unified REST API gateway for **Anime** and **Manga** — scraping streaming links, episode data, manga details, and chapter images from popular sources.
