@@ -1,4 +1,5 @@
 const cheerio = require("cheerio");
+const { toAbsoluteMangaUrl } = require("../constants");
 
 const mangaController = (req, res) => {
   if (!req.html) {
@@ -72,11 +73,7 @@ const mangaController = (req, res) => {
   }
 
   const metaData = {
-    imageUrl: imageUrl.startsWith("http")
-      ? imageUrl
-      : imageUrl
-        ? `https://mangabuddy.com${imageUrl}`
-        : "",
+    imageUrl: toAbsoluteMangaUrl(imageUrl),
     name: name,
     author: author || "Unknown",
     status: status || "Unknown",

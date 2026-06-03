@@ -1,6 +1,5 @@
 const scrape = require("../scraper");
 const cheerio = require("cheerio");
-const urlLink = "https://mangabuddy.com";
 
 const ListManga = (req, res) => {
   const page = req.query.page || 1;

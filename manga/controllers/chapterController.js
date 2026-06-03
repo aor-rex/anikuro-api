@@ -1,4 +1,5 @@
 const cheerio = require("cheerio");
+const { toAbsoluteMangaUrl } = require("../constants");
 
 const chapterController = (req, res) => {
   if (!req.html) {
@@ -41,9 +42,7 @@ const chapterController = (req, res) => {
       const alt = $(val).attr("alt") || "";
 
       // Handle relative URLs
-      if (imgSrc && imgSrc.startsWith("/")) {
-        imgSrc = `https://mangabuddy.com${imgSrc}`;
-      }
+      imgSrc = toAbsoluteMangaUrl(imgSrc);
 
       if (imgSrc) {
         images.push({
