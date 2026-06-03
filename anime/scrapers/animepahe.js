@@ -4,6 +4,7 @@ const Config = require("../utils/config");
 const { JSDOM } = require("jsdom");
 const vm = require("vm");
 const RequestManager = require("../utils/requestManager");
+const flaresolverr = require("../utils/flaresolverr");
 const { launchBrowser } = require("../utils/browser");
 const { CustomError } = require("../middleware/errorHandler");
 const os = require("os");
@@ -80,8 +81,15 @@ class Animepahe {
    * If this fails, the server still starts — requests will use Playwright fallback.
    */
   async initialize() {
+    if (flaresolverr.isEnabled()) {
+      console.log(
+        "[animepahe] FlareSolverr enabled, skipping local cookie pre-fetch",
+      );
+      return true;
+    }
+
     console.log("\x1b[33m%s\x1b[0m", "═══════════════════════════════════════════");
-    console.log("\x1b[33m%s\x1b[0m", "  Cookie Pre-fetch — Solving DDoS-Guard...");
+    console.log("\x1b[33m%s\x1b[0m", "  Cookie Pre-fetch — Solving Cloudflare...");
     console.log("\x1b[33m%s\x1b[0m", "═══════════════════════════════════════════");
     const start = Date.now();
 
@@ -129,20 +137,17 @@ class Animepahe {
         timeout: 60000,
       });
 
-      // Wait for DDoS-Guard challenge to solve
-      console.log("[Cookie Pre-fetch] Waiting for DDoS-Guard challenge...");
-      await page.waitForTimeout(5000);
-      const isChallengeActive = await page.$("#ddg-cookie");
-      if (isChallengeActive) {
-        console.log("[Cookie Pre-fetch] DDoS-Guard challenge detected, waiting...");
-        await page.waitForSelector("#ddg-cookie", {
-          state: "hidden",
-          timeout: 60000,
-        });
+      // Wait for Cloudflare challenge to solve
+      console.log("[Cookie Pre-fetch] Waiting for Cloudflare challenge...");
+      try {
+        await page.waitForFunction(
+          () => !document.title.includes("Just a moment"),
+          { timeout: 60000 }
+        );
+        console.log("[Cookie Pre-fetch] ✅ Challenge solved");
+      } catch {
+        console.log("[Cookie Pre-fetch] ⚠️ Challenge wait timed out, continuing anyway...");
       }
-
-      // Buffer after challenge
-      await page.waitForTimeout(3000);
 
       // Visit /api for API-specific session cookies
       console.log("[Cookie Pre-fetch] Visiting /api endpoint...");
@@ -238,6 +243,10 @@ class Animepahe {
   }
 
   async refreshCookies() {
+    if (flaresolverr.isEnabled()) {
+      return;
+    }
+
     if (this.isRefreshingCookies) return;
     this.isRefreshingCookies = true;
 
@@ -274,19 +283,17 @@ class Animepahe {
         timeout: 60000,
       });
 
-      // Wait longer for DDoS-Guard challenge to fully solve
-      await page.waitForTimeout(5000);
-      const isChallengeActive = await page.$("#ddg-cookie");
-      if (isChallengeActive) {
-        console.log("Solving DDoS-Guard challenge...");
-        await page.waitForSelector("#ddg-cookie", {
-          state: "hidden",
-          timeout: 60000,
-        });
+      // Wait for Cloudflare challenge to solve
+      console.log("Waiting for Cloudflare challenge...");
+      try {
+        await page.waitForFunction(
+          () => !document.title.includes("Just a moment"),
+          { timeout: 60000 }
+        );
+        console.log("✅ Challenge solved");
+      } catch {
+        console.log("⚠️ Challenge wait timed out, continuing anyway...");
       }
-
-      // Additional buffer after challenge solves
-      await page.waitForTimeout(3000);
 
       // Also visit the /api endpoint to get API-specific session cookies
       console.log("Visiting /api endpoint to ensure API cookies are set...");
@@ -327,6 +334,10 @@ class Animepahe {
   }
 
   async getCookies(userProvidedCookies = null) {
+    if (flaresolverr.isEnabled() && !userProvidedCookies) {
+      return "";
+    }
+
     // If user provided cookies directly, use them
     if (userProvidedCookies) {
       if (
@@ -386,6 +397,7 @@ class Animepahe {
       // Retry with browser fallback on auth errors (401, 403, 503)
       const statusCode = error.statusCode || error.response?.status;
       if (
+        !flaresolverr.isEnabled() &&
         !userProvidedCookies &&
         !forceBrowser &&
         (statusCode === 401 || statusCode === 403 || statusCode === 503)
@@ -474,36 +486,33 @@ class Animepahe {
     const url = Config.getUrl("play", { id, episodeId });
 
     return browserLimit(async () => {
-    // ─── FAST PATH: Try axios with saved cookies (no browser) ───
-    // This is Strategy 1: uses cookies pre-fetched at server startup.
-    // If cookies are valid, this takes ~0.5-2s instead of ~40-60s with Playwright.
-    // If cookies are expired, the response will be a DDoS-Guard challenge page,
-    // which we detect and fall back to Playwright.
-    if (Config.cookies) {
+    // ─── FAST PATH: Try FlareSolverr or axios with saved cookies ───
+    if (Config.cookies || flaresolverr.isEnabled()) {
       try {
-        console.log("[Play Page] Fast path: axios with saved cookies");
+        const source = flaresolverr.isEnabled() ? "FlareSolverr" : "cookies";
+        console.log(`[Play Page] Fast path: ${source}`);
         const html = await RequestManager.fetchWithCookies(url);
 
-        // Validate response — if it contains DDoS-Guard challenge, cookies are stale
         if (
           html &&
-          !html.includes("DDoS-Guard") &&
+          html.length > 100 &&
+          !html.toLowerCase().includes("just a moment") &&
           !html.toLowerCase().includes("checking your browser") &&
-          !html.includes("ddg-cookie")
+          !html.toLowerCase().includes("ddos protection by cloudflare") &&
+          !html.toLowerCase().includes("ddg-cookie")
         ) {
-          console.log("[Play Page] ✅ Fast path success (no browser needed)");
+          console.log(`[Play Page] ✅ Fast path success (${source})`);
           return html;
         }
 
-        console.log("[Play Page] ⚠️ Cookies expired, falling back to Playwright");
+        console.log(`[Play Page] ⚠️ ${source} returned challenge page, falling back to Playwright`);
       } catch (error) {
-        // axios may throw on non-2xx or network error — fall through to Playwright
         console.log(`[Play Page] ⚠️ Fast path failed (${error.message}), falling back to Playwright`);
       }
     }
 
-    // ─── FALLBACK: Use Playwright to bypass DDoS-Guard ───
-    console.log("[Play Page] Slow path: Playwright (DDoS-Guard bypass)");
+    // ─── FALLBACK: Use Playwright ───
+    console.log("[Play Page] Slow path: Playwright");
     try {
       const html = await RequestManager.fetch(url, null, "heavy");
 

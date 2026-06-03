@@ -2,9 +2,27 @@ const { launchBrowser } = require("./browser");
 const cloudscraper = require("cloudscraper");
 const axios = require("axios");
 const Config = require("./config");
+const flaresolverr = require("./flaresolverr");
 const { CustomError } = require("../middleware/errorHandler");
 
 class RequestManager {
+  /**
+   * Domains accessible directly from local machine (no FlareSolverr needed)
+   */
+  static LOCAL_DOMAINS = ["kwik", "uwucdn", "uwu"];
+
+  /**
+   * Check if a URL should be fetched directly (not through FlareSolverr)
+   */
+  static _isLocalDomain(url) {
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return this.LOCAL_DOMAINS.some(d => host.includes(d));
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Universal cloudscraper method - handles GET, POST, and any HTTP method
    * @param {Object} options - Request options
@@ -27,7 +45,7 @@ class RequestManager {
       json = null,
       followRedirect = true,
       followAllRedirects = false,
-      timeout = 8000, // Reduced from 30s to 8s for faster failure detection
+      timeout = 8000,
       referer = Config.getUrl("home"),
       resolveWithFullResponse = true,
       simple = false,
@@ -35,6 +53,18 @@ class RequestManager {
 
     if (!url) {
       throw new CustomError("URL is required for cloudscraper request", 400);
+    }
+
+    if (flaresolverr.isEnabled() && !this._isLocalDomain(url)) {
+      const result =
+        (method || "GET").toUpperCase() === "POST"
+          ? await flaresolverr.post(url, form || json || {})
+          : await flaresolverr.get(url);
+      return {
+        statusCode: result.status,
+        headers: {},
+        body: result.body,
+      };
     }
 
     const defaultHeaders = {
@@ -156,6 +186,11 @@ class RequestManager {
    * @returns {Promise<string>} HTML response body
    */
   static async fetchWithCookies(url) {
+    if (flaresolverr.isEnabled()) {
+      const { body } = await flaresolverr.get(url);
+      return body;
+    }
+
     const cookieHeader = Config.cookies;
     if (!cookieHeader) {
       throw new CustomError(
@@ -188,6 +223,11 @@ class RequestManager {
   static async scrapeWithCloudScraper(url, options = {}) {
     console.log(`Fetching HTML from ${url}...`);
 
+    if (flaresolverr.isEnabled()) {
+      const { body } = await flaresolverr.get(url);
+      return body;
+    }
+
     const response = await this.cloudscraperGet(url, {
       headers: {
         Referer: Config.baseUrl,
@@ -211,6 +251,12 @@ class RequestManager {
 
   static async scrapeWithPlaywright(url) {
     console.log("Fetching content from:", url);
+
+    if (flaresolverr.isEnabled()) {
+      const { body } = await flaresolverr.get(url);
+      return body;
+    }
+
     const proxy = Config.proxyEnabled ? Config.getRandomProxy() : null;
     console.log(`Using proxy: ${proxy || "none"}`);
 
@@ -300,6 +346,11 @@ class RequestManager {
   }
 
   static async fetchJson(url) {
+    if (flaresolverr.isEnabled()) {
+      const { body } = await flaresolverr.get(url);
+      return flaresolverr.extractJson(body);
+    }
+
     const html = await this.fetch(url);
 
     try {
@@ -336,6 +387,11 @@ class RequestManager {
 
   static async fetchCloudflareProtected(url, options = {}) {
     console.log("Fetching Cloudflare-protected content from:", url);
+
+    if (flaresolverr.isEnabled()) {
+      const { body } = await flaresolverr.get(url);
+      return body;
+    }
 
     const proxy = Config.proxyEnabled ? Config.getRandomProxy() : null;
     console.log(`Using proxy: ${proxy || "none"}`);
@@ -480,6 +536,15 @@ class RequestManager {
 
   static async fetchApiData(url, params = {}, cookieHeader) {
     try {
+      if (flaresolverr.isEnabled()) {
+        const target = new URL(url);
+        Object.keys(params).forEach((key) => {
+          target.searchParams.append(key, params[key]);
+        });
+        const { body } = await flaresolverr.get(target.toString());
+        return url.includes("/api") ? flaresolverr.extractJson(body) : body;
+      }
+
       if (!cookieHeader) {
         throw new CustomError("DDoS-Guard authentication required", 403);
       }
@@ -564,6 +629,15 @@ class RequestManager {
    */
   static async fetchApiDataWithBrowser(url, params) {
     console.log(`[fetchApiDataWithBrowser] Using Playwright for: ${url}`);
+
+    if (flaresolverr.isEnabled()) {
+      const target = new URL(url);
+      Object.keys(params).forEach((key) => {
+        target.searchParams.append(key, params[key]);
+      });
+      const { body } = await flaresolverr.get(target.toString());
+      return flaresolverr.extractJson(body);
+    }
     
     const { launchBrowser } = require("./browser");
     const browser = await launchBrowser();

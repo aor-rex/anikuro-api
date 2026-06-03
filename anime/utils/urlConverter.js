@@ -78,8 +78,8 @@ class UrlConverter {
         const downloadUrl = `${mp4Url}?file=${filename}`;
         
         const headers = {
-            Referer: 'https://animepahe.pw/',
-            Origin: 'https://animepahe.pw',
+            Referer: 'https://kwik.cx/',
+            Origin: 'https://kwik.cx',
         };
         
         return {

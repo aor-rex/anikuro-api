@@ -1713,15 +1713,25 @@
                 html += '<div class="resp-area">';
                 d.sources.forEach(function (src, idx) {
                   html += "<div><strong>source " + (idx + 1) + "</strong>";
-                  if (src.src)
+                  if (src.url || src.src)
                     html +=
-                      '<br><span style="color:#22c55e">' + src.src + "</span>";
+                      '<br><span style="color:#22c55e">' +
+                      (src.url || src.src) +
+                      "</span>";
                   if (src.type) html += "<br>type: " + src.type;
+                  if (src.resolution)
+                    html += "<br>resolution: " + src.resolution;
+                  if (src.fanSub || src.fansub)
+                    html += "<br>fansub: " + (src.fanSub || src.fansub);
                   if (src.download)
                     html +=
                       '<br>download: <span style="color:#22c55e">' +
                       src.download +
                       "</span>";
+                  if (src.downloadHeaders)
+                    html +=
+                      "<br>download headers: " +
+                      JSON.stringify(src.downloadHeaders);
                   html += "</div><br>";
                 });
                 html += "</div>";
@@ -1732,24 +1742,32 @@
                   "</div>";
               }
 
-              if (d.downloadLinks && d.downloadLinks.length) {
+              if (d.downloads && d.downloads.length) {
                 html +=
                   '<h4 style="margin-top:1rem;margin-bottom:0.5rem;font-size:0.85rem;">download links</h4>';
                 html += '<div class="resp-area">';
-                d.downloadLinks.forEach(function (link) {
+                d.downloads.forEach(function (link) {
                   html +=
                     "<div><strong>" +
                     (link.quality || link.resolution || "unknown") +
                     "</strong>";
-                  if (link.url)
+                  if (link.download || link.url)
                     html +=
-                      '<br><span style="color:#22c55e">' + link.url + "</span>";
+                      '<br><span style="color:#22c55e">' +
+                      (link.download || link.url) +
+                      "</span>";
+                  if (link.pahe)
+                    html += "<br>pahe: " + link.pahe;
+                  if (link.downloadHeaders)
+                    html +=
+                      "<br>download headers: " +
+                      JSON.stringify(link.downloadHeaders);
                   html += "</div><br>";
                 });
                 html += "</div>";
               }
 
-              if (!d.sources && !d.downloadLinks) {
+              if (!d.sources && !d.downloads) {
                 html +=
                   '<div class="resp-area">' +
                   JSON.stringify(d, null, 2) +

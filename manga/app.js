@@ -7,7 +7,9 @@ const ApiKey = require("./middleware/apiKeyMiddleware");
 const mangaRouter = require("./routes/mangaRouter");
 const mangaListRouter = require("./routes/mangaListRouter");
 const mangaSearch = require("./routes/mangaSearch");
-require("dotenv").config();
+require("dotenv").config({
+  path: path.join(__dirname, "..", ".env"),
+});
 
 // FIX: Disable TLS certificate verification for upstream manga source
 // (Required for HF Spaces where network routing causes self-signed cert errors)

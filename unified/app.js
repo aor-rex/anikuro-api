@@ -3,6 +3,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+require(path.join(__dirname, "..", "anime", "node_modules", "dotenv")).config({
+  path: path.join(__dirname, "..", ".env"),
+});
 const requestId = require("../manga/middleware/requestIdMiddleware");
 
 // Add manga node_modules to the module search path
