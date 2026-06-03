@@ -125,17 +125,19 @@ class Animepahe {
       // Navigate to animepahe.pw and wait for DDoS-Guard
       console.log("[Cookie Pre-fetch] Navigating to animepahe.pw...");
       await page.goto(Config.getUrl("home"), {
-        waitUntil: "networkidle",
-        timeout: 45000,
+        waitUntil: "domcontentloaded",
+        timeout: 60000,
       });
 
       // Wait for DDoS-Guard challenge to solve
+      console.log("[Cookie Pre-fetch] Waiting for DDoS-Guard challenge...");
+      await page.waitForTimeout(5000);
       const isChallengeActive = await page.$("#ddg-cookie");
       if (isChallengeActive) {
         console.log("[Cookie Pre-fetch] DDoS-Guard challenge detected, waiting...");
         await page.waitForSelector("#ddg-cookie", {
           state: "hidden",
-          timeout: 45000,
+          timeout: 60000,
         });
       }
 
@@ -146,7 +148,7 @@ class Animepahe {
       console.log("[Cookie Pre-fetch] Visiting /api endpoint...");
       try {
         await page.goto(Config.getUrl("home") + "api", {
-          waitUntil: "networkidle",
+          waitUntil: "domcontentloaded",
           timeout: 15000,
         });
         await page.waitForTimeout(2000);
@@ -268,8 +270,8 @@ class Animepahe {
 
       console.log("Navigating to URL...");
       await page.goto(Config.getUrl("home"), {
-        waitUntil: "networkidle",
-        timeout: 30000,
+        waitUntil: "domcontentloaded",
+        timeout: 60000,
       });
 
       // Wait longer for DDoS-Guard challenge to fully solve
@@ -279,7 +281,7 @@ class Animepahe {
         console.log("Solving DDoS-Guard challenge...");
         await page.waitForSelector("#ddg-cookie", {
           state: "hidden",
-          timeout: 45000,
+          timeout: 60000,
         });
       }
 
@@ -290,7 +292,7 @@ class Animepahe {
       console.log("Visiting /api endpoint to ensure API cookies are set...");
       try {
         await page.goto(Config.getUrl("home") + "api", {
-          waitUntil: "networkidle",
+          waitUntil: "domcontentloaded",
           timeout: 15000,
         });
         await page.waitForTimeout(3000);
@@ -382,13 +384,11 @@ class Animepahe {
       return await RequestManager.fetchApiData(url, params, cookieHeader);
     } catch (error) {
       // Retry with browser fallback on auth errors (401, 403, 503)
+      const statusCode = error.statusCode || error.response?.status;
       if (
         !userProvidedCookies &&
         !forceBrowser &&
-        (error.response?.status === 401 || 
-         error.response?.status === 403 || 
-         error.response?.status === 503 ||
-         error.statusCode === 503)
+        (statusCode === 401 || statusCode === 403 || statusCode === 503)
       ) {
         console.log("[fetchApiData] Cookie invalid, refreshing and retrying with browser...");
         await this.refreshCookies();

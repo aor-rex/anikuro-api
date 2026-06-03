@@ -36,6 +36,11 @@ const cache = (duration) => async (req, res, next) => {
         const originalJson = res.json;
 
         res.json = async function(data) {
+            // Never cache non-success responses.
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+                return originalJson.call(this, data);
+            }
+
             // Cache in Redis if enabled
             if (redis.enabled) {
                 await redis.setEx(key, duration, JSON.stringify(data));
