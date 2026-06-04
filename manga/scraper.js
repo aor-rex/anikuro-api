@@ -1,11 +1,10 @@
-// FIX: Disable TLS verification for self-signed certificate on manga upstream
+// FIX: Disable TLS verification for self-signed certificate on mangabuddy.com
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const https = require("https");
 const zlib = require("zlib");
-const { MANGA_BASE_URL } = require("./constants");
 
-const BASE_URL = MANGA_BASE_URL;
+const BASE_URL = "https://mangabuddy.com";
 
 // FIX Bug #8: Shared https.Agent - maxSockets actually works now
 const sharedAgent = new https.Agent({

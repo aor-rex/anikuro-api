@@ -4,8 +4,8 @@ emoji: 📚
 colorFrom: red
 colorTo: blue
 sdk: docker
-app_port: 7860
 pinned: false
+license: mit
 ---
 
 # Anikuro API
@@ -72,7 +72,7 @@ https://aor-rex-anikuro-api.hf.space
 ### Run Locally
 
 ```bash
-git clone https://gitlab.com/aor-rex/anikuro-api.git
+git clone https://github.com/aor-rex/anikuro-api.git
 cd anikuro-api
 
 # Install & build

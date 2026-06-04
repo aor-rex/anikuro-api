@@ -3,9 +3,6 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
-require(path.join(__dirname, "..", "anime", "node_modules", "dotenv")).config({
-  path: path.join(__dirname, "..", ".env"),
-});
 const requestId = require("../manga/middleware/requestIdMiddleware");
 
 // Add manga node_modules to the module search path
@@ -129,7 +126,7 @@ app.get("/health", (req, res) => {
       anime_episode: "/api/anime/:id/:ep",
       health: "/health",
     },
-    source: "https://gitlab.com/aor-rex/anikuro-api",
+    source: "https://github.com/aor-rex/anikuro-api",
   });
 });
 

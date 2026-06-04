@@ -7,9 +7,7 @@ const ApiKey = require("./middleware/apiKeyMiddleware");
 const mangaRouter = require("./routes/mangaRouter");
 const mangaListRouter = require("./routes/mangaListRouter");
 const mangaSearch = require("./routes/mangaSearch");
-require("dotenv").config({
-  path: path.join(__dirname, "..", ".env"),
-});
+require("dotenv").config();
 
 // FIX: Disable TLS certificate verification for upstream manga source
 // (Required for HF Spaces where network routing causes self-signed cert errors)
@@ -80,7 +78,7 @@ app.get("/health", (req, res) => {
       manga_search: "/api/manga/search/:query",
       health: "/health",
     },
-    source: "https://gitlab.com/aor-rex/anikuro-api",
+    source: "https://github.com/aor-rex/anikuro-api",
   });
 });
 
