@@ -1097,9 +1097,8 @@ class Animepahe {
         `[Kwik Fetch] Fallback: Playwright for: ${url.substring(0, 60)}...`,
       );
 
-      const { chromium } = require("playwright");
       browser = await Promise.race([
-        chromium.launch({ headless: true }),
+        launchBrowser(),
         new Promise((_, reject) => setTimeout(() => reject(new Error("Browser launch timed out")), 10000)),
       ]);
 

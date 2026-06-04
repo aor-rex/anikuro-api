@@ -11,7 +11,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@sparticuz/chromium": "^133.0.0",
     "axios": "^1.13.5",
     "cheerio": "1.0.0-rc.12",
     "cloudscraper": "^4.6.0",
@@ -20,10 +19,6 @@
     "express": "^4.21.2",
     "jsdom": "^22.1.0",
     "p-limit": "^5.0.0",
-    "playwright": "^1.59.1",
-    "playwright-core": "^1.52.0",
-    "playwright-extra": "^4.3.6",
-    "playwright-extra-plugin-stealth": "^0.0.1",
     "redis": "^5.5.6"
   },
   "devDependencies": {
