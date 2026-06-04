@@ -1,6 +1,8 @@
 # Dependencies
+anime/node_modules/
 manga/node_modules/
 docs/node_modules/
+unified/node_modules/
 
 # Git
 .git/

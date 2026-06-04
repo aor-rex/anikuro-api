@@ -33,5 +33,5 @@ out/
 test*
 .venv/
 package-lock.json
-animepahe-api
+animepahe-api/
 test*
