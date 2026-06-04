@@ -32,3 +32,6 @@ backup/
 .md/
 *.md
 !README.md
+
+pnpm*
+.npmrc

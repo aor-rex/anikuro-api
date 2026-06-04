@@ -331,9 +331,31 @@ function extractJson(body) {
   return JSON.parse(body);
 }
 
+async function fetchCookies(url) {
+  if (!isEnabled()) return "";
+  const useProxy = shouldProxy(url);
+  const data = await solveOnce(useProxy, (session) => ({
+    cmd: "request.get",
+    url,
+    session,
+    maxTimeout: MAX_TIMEOUT,
+  }));
+  if (data.status !== "ok" || !data.solution) {
+    throw solutionError(data, url);
+  }
+  const cookies = data.solution.cookies || [];
+  const header = cookies
+    .filter((c) => c.name && c.value && !c.name.startsWith("_"))
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+  if (!header) throw new Error("FlareSolverr returned no cookies");
+  return header;
+}
+
 module.exports = {
   isEnabled,
   get,
   post,
+  fetchCookies,
   extractJson,
 };

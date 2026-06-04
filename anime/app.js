@@ -1,4 +1,5 @@
 const express = require("express");
+const axios = require("axios");
 const Config = require("./utils/config");
 const homeRoutes = require("./routes/homeRoutes");
 const queueRoutes = require("./routes/queueRoutes");
@@ -7,6 +8,7 @@ const animeInfoRoutes = require("./routes/animeInfoRoutes");
 const playRoutes = require("./routes/playRoutes");
 const cache = require("./middleware/cache");
 const Animepahe = require("./scrapers/animepahe");
+const flaresolverr = require("./utils/flaresolverr");
 
 // Load environment variables into Config
 try {
@@ -31,7 +33,51 @@ Animepahe.initialize().catch((err) =>
   console.error("[Startup] Cookie pre-fetch error:", err.message),
 );
 
+// ─── Image proxy endpoint ───
+// Uses Cloudflare cookies (extracted at startup via FlareSolverr) to
+// fetch animepahe.pw images and serve them to the client, bypassing
+// Cloudflare Turnstile that would block direct browser requests.
+async function proxyImage(req, res) {
+  const imageUrl = req.query.url;
+  if (!imageUrl) {
+    return res.status(400).json({ error: "Missing ?url= parameter" });
+  }
+  if (
+    !imageUrl.includes("animepahe.pw") &&
+    !imageUrl.includes("kwik") &&
+    !imageUrl.includes("pahe")
+  ) {
+    return res.status(403).json({ error: "Domain not allowed" });
+  }
+
+  const headers = {
+    Referer: "https://animepahe.pw/",
+    "User-Agent": Config.userAgent,
+  };
+  if (Config.cookies) headers.Cookie = Config.cookies;
+
+  try {
+    const resp = await axios.get(imageUrl, {
+      responseType: "stream",
+      headers,
+      timeout: 15000,
+    });
+    for (const [key, val] of Object.entries(resp.headers)) {
+      if (key !== "transfer-encoding" && key !== "connection") {
+        res.setHeader(key, val);
+      }
+    }
+    return resp.data.pipe(res);
+  } catch (err) {
+    console.error(`[Image Proxy] Failed: ${imageUrl} — ${err.message}`);
+    res.status(502).json({ error: "Failed to fetch image" });
+  }
+}
+
 const router = express.Router();
+
+// Image proxy — no cache because images change
+router.get("/image", proxyImage);
 
 // ─── Anime routes ───
 // NOTE: animeInfoRoutes (/:id, /:id/releases) MUST come before playRoutes (/:id/:ep)

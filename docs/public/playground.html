@@ -987,6 +987,52 @@
       function loading() {
         return '<div class="status-line"><span class="loading">fetching...</span></div>';
       }
+      function normalizeImageUrl(url) {
+        if (!url) return "";
+        if (url.indexOf("//") === 0) return "https:" + url;
+        return url;
+      }
+      function getAnimeImageHost(url) {
+        try {
+          return new URL(normalizeImageUrl(url)).host.toLowerCase();
+        } catch (e) {
+          return "";
+        }
+      }
+      function logAnimeImage(url, context) {
+        var normalized = normalizeImageUrl(url);
+        if (!normalized) return;
+        console.log(
+          "[playground:image]",
+          context || "anime",
+          getAnimeImageHost(normalized),
+          normalized,
+        );
+      }
+      function getAnimeImage(obj) {
+        return normalizeImageUrl(
+          (obj &&
+            (obj.image ||
+              obj.poster ||
+              obj.snapshot ||
+              obj.imageUrl ||
+              obj.thumbnail)) ||
+            "",
+        );
+      }
+      function renderAnimeImage(url, extraStyle, context) {
+        var img = normalizeImageUrl(url);
+        if (!img) return "";
+        logAnimeImage(img, context);
+        var style = extraStyle ? ' style="' + extraStyle + '"' : "";
+        return (
+          '<img src="' +
+          img +
+          '" loading="lazy"' +
+          style +
+          ' onerror="console.warn(\'[playground:image:error]\', this.currentSrc || this.src); this.style.display=\'none\'">'
+        );
+      }
       function errHTML(e) {
         var msg = e || "Unknown error";
         // Provide helpful hints for common errors
@@ -1147,7 +1193,7 @@
               html += '<div class="card"><div class="detail-header">';
               if (d.imageUrl)
                 html +=
-                  '<img class="detail-cover" src="' +
+                  '<img class="detail-cover" referrerpolicy="no-referrer" src="' +
                   d.imageUrl +
                   '" onerror="this.style.display=\'none\'">';
               html += '<div class="detail-meta"><h2>' + d.name + "</h2>";
@@ -1255,7 +1301,7 @@
                     img.image +
                     '" alt="' +
                     (img.title || "") +
-                    '" loading="lazy">';
+                    '" loading="lazy" referrerpolicy="no-referrer">';
                 });
                 html += "</div>";
               } else {
@@ -1309,7 +1355,7 @@
             if (airingList.length) {
               html += '<div class="card"><div class="manga-grid">';
               airingList.forEach(function (anime) {
-                var img = anime.image || anime.imageUrl || "";
+                var img = getAnimeImage(anime);
                 var title = anime.title || "unknown";
                 var ep = anime.episode || anime.currentEpisode || "";
                 var id = anime.session || anime.id || "";
@@ -1318,10 +1364,7 @@
                   id +
                   "')\">";
                 if (img)
-                  html +=
-                    '<img src="' +
-                    img +
-                    '" loading="lazy" onerror="this.style.display=\'none\'">';
+                  html += renderAnimeImage(img, "", "anime-airing");
                 html +=
                   '<div class="info"><div class="title">' + title + "</div>";
                 if (ep) html += '<div class="ch">Ep ' + ep + "</div>";
@@ -1373,7 +1416,7 @@
             if (searchList.length) {
               html += '<div class="card"><div class="manga-grid">';
               searchList.forEach(function (anime) {
-                var img = anime.image || anime.poster || anime.imageUrl || "";
+                var img = getAnimeImage(anime);
                 var title = anime.title || "unknown";
                 var id = anime.session || anime.id || "";
                 html +=
@@ -1381,10 +1424,7 @@
                   id +
                   "')\">";
                 if (img)
-                  html +=
-                    '<img src="' +
-                    img +
-                    '" loading="lazy" onerror="this.style.display=\'none\'">';
+                  html += renderAnimeImage(img, "", "anime-search");
                 html +=
                   '<div class="info"><div class="title">' + title + "</div>";
                 if (anime.type)
@@ -1440,6 +1480,7 @@
             if (animeList.length) {
               html += '<div class="card"><div class="manga-grid">';
               animeList.forEach(function (anime) {
+                var img = getAnimeImage(anime);
                 var title = anime.title || "unknown";
                 var type = anime.type || "";
                 // Extract ID from URL path or session field
@@ -1454,6 +1495,8 @@
                   '<div class="manga-card" onclick="openAnimeDetail(\'' +
                   id +
                   "')\">";
+                if (img)
+                  html += renderAnimeImage(img, "", "anime-list");
                 html +=
                   '<div class="info"><div class="title">' + title + "</div>";
                 if (type) html += '<div class="ch">' + type + "</div>";
@@ -1505,12 +1548,14 @@
             var html = statusHTML(r.ok, r.status, ms);
 
             if (d.title || d.name) {
+              var cover = getAnimeImage(d);
               html += '<div class="card"><div class="detail-header">';
-              if (d.image || d.imageUrl)
-                html +=
-                  '<img class="detail-cover" src="' +
-                  (d.image || d.imageUrl) +
-                  '" onerror="this.style.display=\'none\'">';
+              if (cover)
+                html += renderAnimeImage(
+                  cover,
+                  "",
+                  "anime-detail",
+                ).replace("<img ", '<img class="detail-cover" ');
               html +=
                 '<div class="detail-meta"><h2>' + (d.title || d.name) + "</h2>";
               if (d.synopsis || d.description)
@@ -1564,7 +1609,7 @@
                   '<h3 style="margin-top:1.5rem;margin-bottom:0.5rem;font-size:0.95rem;">recommendations</h3>';
                 html += '<div class="manga-grid">';
                 d.recommendations.forEach(function (rec) {
-                  var img = rec.image || rec.imageUrl || "";
+                  var img = getAnimeImage(rec);
                   var title = rec.title || rec.name || "unknown";
                   var recId = rec.id || rec.session || "";
                   html +=
@@ -1572,10 +1617,7 @@
                     recId +
                     "')\">";
                   if (img)
-                    html +=
-                      '<img src="' +
-                      img +
-                      '" loading="lazy" onerror="this.style.display=\'none\'">';
+                    html += renderAnimeImage(img, "", "anime-recommendation");
                   html +=
                     '<div class="info"><div class="title">' +
                     title +
@@ -1643,16 +1685,24 @@
                 var epId = ep.session || ep.id || "";
                 var epNum = ep.episode || "unknown";
                 var dur = ep.duration || "";
+                var thumb = getAnimeImage(ep);
                 html +=
                   '<div class="chapter-item" onclick="openAnimeEpisode(\'' +
                   id +
                   "','" +
                   epId +
                   "')\">";
+                if (thumb)
+                  html += renderAnimeImage(
+                    thumb,
+                    "width:72px;height:72px;object-fit:cover;border-radius:10px;margin-right:0.85rem;flex-shrink:0;",
+                    "anime-release",
+                  );
+                html += '<div style="display:flex;flex-direction:column;min-width:0;">';
                 html += "Episode " + epNum;
                 if (dur)
                   html += ' <span style="color:#888">(' + dur + ")</span>";
-                html += "</div>";
+                html += "</div></div>";
               });
               html += "</div></div>";
             } else {

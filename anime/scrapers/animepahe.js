@@ -83,8 +83,45 @@ class Animepahe {
   async initialize() {
     if (flaresolverr.isEnabled()) {
       console.log(
-        "[animepahe] FlareSolverr enabled, skipping local cookie pre-fetch",
+        "[animepahe] FlareSolverr enabled, extracting cookies for image proxy...",
       );
+      try {
+        const cookieHeader = await flaresolverr.fetchCookies(
+          Config.getUrl("home"),
+        );
+        if (cookieHeader) {
+          Config.setCookies(cookieHeader);
+          console.log(
+            "[animepahe] ✅ Main domain cookies extracted",
+          );
+        }
+      } catch (err) {
+        console.warn(
+          "[animepahe] ⚠️ Cookie extraction via FlareSolverr failed:",
+          err.message,
+        );
+      }
+
+      // Also fetch cookies for i.animepahe.pw (image CDN)
+      try {
+        const imgCookies = await flaresolverr.fetchCookies(
+          "https://i.animepahe.pw/snapshots/dummy",
+        );
+        if (imgCookies && Config.cookies) {
+          const merged = Config.cookies + "; " + imgCookies;
+          const unique = new Map();
+          merged.split("; ").forEach((c) => {
+            const [k, ...v] = c.split("=");
+            if (k && v.length) unique.set(k.trim(), v.join("="));
+          });
+          Config.setCookies(
+            [...unique].map(([k, v]) => k + "=" + v).join("; "),
+          );
+          console.log("[animepahe] ✅ Image CDN cookies extracted");
+        }
+      } catch (err) {
+        console.warn("[animepahe] ⚠️ Image CDN cookie extraction failed:", err.message);
+      }
       return true;
     }
 
