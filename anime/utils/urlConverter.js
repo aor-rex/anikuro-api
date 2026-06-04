@@ -15,14 +15,10 @@ class UrlConverter {
         
         try {
             const urlObj = new URL(m3u8Url);
-            
-            const hostParts = urlObj.hostname.split('.');
-            if (hostParts[0].startsWith('vault-')) {
-                urlObj.hostname = `${hostParts[0]}.${kwikDomain}`;
-            } else {
-                urlObj.hostname = kwikDomain;
-            }
-            
+
+            // Preserve the exact CDN host returned by AnimePahe.
+            // The site has been switching between hosts like uwucdn.top and
+            // owocdn.top, so forcing Config.iframeBaseUrl can produce bad links.
             urlObj.pathname = urlObj.pathname.replace('/stream/', '/mp4/');
             
             if (urlObj.pathname.endsWith('/uwu.m3u8')) {
