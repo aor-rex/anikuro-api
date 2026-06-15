@@ -8,9 +8,11 @@ const queueRoutes = require("../routes/queueRoutes");
 const animeListRoutes = require("../routes/animeListRoutes");
 const animeInfoRoutes = require("../routes/animeInfoRoutes");
 const playRoutes = require("../routes/playRoutes");
+const webhookRoutes = require("../routes/webhookRoutes");
 const PlayController = require("../controllers/playController");
 const cache = require("../middleware/cache");
 const testRoutes = require("../routes/testRoutes");
+const { startWebhookNotifier } = require("../utils/webhookNotifier");
 
 const app = express();
 
@@ -23,6 +25,8 @@ try {
   console.error(error.message);
   throw error;
 }
+
+startWebhookNotifier();
 
 // CORS Configuration
 const corsOptions = {
@@ -67,6 +71,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 app.use("/api", homeRoutes); // caching done in homeRoutes (30s airing, 120s search)
+app.use("/api", webhookRoutes);
 app.use("/api", cache(30), queueRoutes); // 30 seconds
 app.use("/api", cache(18000), animeListRoutes); // 5 hours
 app.use("/api", cache(86400), animeInfoRoutes); // 24 hours
