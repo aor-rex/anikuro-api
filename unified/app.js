@@ -73,19 +73,9 @@ app.use("/api/manga/list", cache(300), mangaListRouter);     // 5 min
 app.use("/api/manga/search", cache(120), mangaSearch);       // 2 min
 app.use("/api/manga", cache(3600), mangaRouter);             // 1 hour — details/chapters rarely change
 
-// ─── Download Proxy (/api/anime/download-proxy?url=...) ───
-// DEPRECATED: This endpoint launches a headless browser to bypass Cloudflare.
-// It is resource-intensive (300MB+ RAM per request), has a 120s timeout,
-// and is not suitable for production use without concurrency limits.
-// Use /api/anime/:id/:ep instead — direct m3u8 stream URLs are provided
-// under sources[].url and download proxy URLs under sources[].download.
-app.get("/api/anime/download-proxy", async (_req, res) => {
-  return res.status(501).json({
-    status: 501,
-    message: "DEPRECATED: This endpoint is deprecated due to heavy resource usage.",
-    workaround: "Use /api/anime/:id/:ep instead. m3u8 streams are under sources[].url and download proxies under sources[].download.",
-  });
-});
+// ─── Anime download proxy is handled by the anime app ───
+// Keep the unified gateway transparent here so /api/anime/download-proxy
+// reaches the maintained implementation in ../anime/routes/playRoutes.js.
 
 // ─── Anime routes (/api/anime/*) ───
 // The anime app exports an Express app, mount it as a router
