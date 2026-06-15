@@ -88,8 +88,10 @@ class DataProcessor {
       image: item.snapshot || null,
       disc: item.disc || null,
       session: item.anime_session || null,
+      anime_session: item.anime_session || null,
+      episode_session: item.session || null,
       link:
-        (item.session ? `${Config.getUrl("animeInfo", item.session)}` : "") ||
+        (item.anime_session ? `${Config.getUrl("animeInfo", { animeId: item.anime_session })}` : "") ||
         null,
       filler: item.filler || null,
       created_at: item.created_at || null,
