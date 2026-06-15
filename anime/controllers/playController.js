@@ -1,6 +1,7 @@
 const axios = require("axios");
 const PlayModel = require("../models/playModel");
 const Animepahe = require("../scrapers/animepahe");
+const flaresolverr = require("../utils/flaresolverr");
 const Config = require("../utils/config");
 const { CustomError } = require("../middleware/errorHandler");
 
@@ -51,32 +52,76 @@ class PlayController {
         throw new CustomError('domain not allowed', 403);
       }
 
-      const headers = {
-        'User-Agent': Config.userAgent,
-        'Referer': 'https://kwik.cx/',
-        'Origin': 'https://kwik.cx'
-      };
-
-      const cdnCookies = Animepahe.getCdnCookies();
-      if (cdnCookies) headers.Cookie = cdnCookies;
-
-      if (req.headers.range) headers.Range = req.headers.range;
-
-      const upstream = await axios.get(target, {
-        responseType: 'stream',
-        headers,
-        timeout: 30000,
-        validateStatus: () => true
-      });
-
-      if (upstream.status >= 400) {
-        const chunks = [];
-        for await (const chunk of upstream.data) {
-          chunks.push(chunk);
-          if (chunks.reduce((n, b) => n + b.length, 0) >= 2048) break;
+      const cookieCandidates = [
+        Animepahe.getCdnCookies(),
+        Config.cookies
+      ].filter(Boolean);
+      if (flaresolverr.isEnabled()) {
+        try {
+          const solvedCookies = await flaresolverr.fetchCookies(target);
+          if (solvedCookies) cookieCandidates.unshift(solvedCookies);
+        } catch (err) {
+          console.warn(`[download-proxy] flaresolverr cookie fetch failed: ${err.message}`);
         }
-        const preview = Buffer.concat(chunks).toString('utf8', 0, 2048);
-        console.error(`[download-proxy] upstream blocked: status=${upstream.status} host=${host} preview=${preview.slice(0, 160).replace(/\s+/g, ' ')}`);
+      }
+
+      const headerProfiles = [
+        { Referer: 'https://kwik.cx/', Origin: 'https://kwik.cx' },
+        { Referer: 'https://animepahe.pw/' },
+        { Referer: parsed.origin + '/' },
+        {}
+      ];
+
+      if (req.headers.range) {
+        headerProfiles.forEach((profile) => {
+          profile.Range = req.headers.range;
+        });
+      }
+
+      const cookieProfiles = cookieCandidates.length ? cookieCandidates : [null];
+      let upstream = null;
+      let lastFailure = null;
+
+      for (const cookie of cookieProfiles) {
+        for (const profile of headerProfiles) {
+          const headers = {
+            'User-Agent': Config.userAgent,
+            ...profile
+          };
+          if (cookie) headers.Cookie = cookie;
+
+          try {
+            const candidate = await axios.get(target, {
+              responseType: 'stream',
+              headers,
+              timeout: 30000,
+              validateStatus: () => true
+            });
+
+            if (candidate.status < 400) {
+              upstream = candidate;
+              break;
+            }
+
+            const chunks = [];
+            for await (const chunk of candidate.data) {
+              chunks.push(chunk);
+              if (chunks.reduce((n, b) => n + b.length, 0) >= 2048) break;
+            }
+            const preview = Buffer.concat(chunks).toString('utf8', 0, 2048);
+            lastFailure = { status: candidate.status, preview, headers };
+            console.warn(`[download-proxy] blocked with status=${candidate.status} host=${host} referer=${headers.Referer || '-'} cookie=${cookie ? 'yes' : 'no'}`);
+          } catch (err) {
+            lastFailure = { status: 0, preview: err.message, headers };
+            console.warn(`[download-proxy] request failed host=${host} referer=${headers.Referer || '-'} cookie=${cookie ? 'yes' : 'no'} err=${err.message}`);
+          }
+        }
+        if (upstream) break;
+      }
+
+      if (!upstream) {
+        const preview = String(lastFailure?.preview || '').slice(0, 160).replace(/\s+/g, ' ');
+        console.error(`[download-proxy] upstream blocked: status=${lastFailure?.status || 0} host=${host} preview=${preview}`);
         throw new CustomError('download upstream blocked', 502);
       }
 
