@@ -100,6 +100,10 @@ async function buildPayload(item) {
 }
 
 async function tick() {
+  return runTick({});
+}
+
+async function runTick(options = {}) {
   if (running || !isEnabled()) return;
   running = true;
 
@@ -107,10 +111,15 @@ async function tick() {
     await loadState();
     const airing = await HomeModel.getAiringAnime(1);
     const items = Array.isArray(airing?.data) ? airing.data : [];
+    const targetSession = String(options.animeSession || "").trim() || null;
+    let seen = 0;
+    let delivered = 0;
 
     for (const item of items) {
+      if (targetSession && String(item.anime_session || "") !== targetSession) continue;
       const key = buildKey(item);
       if (!item.episode_session) continue;
+      seen += 1;
       if (sentState.has(key)) continue;
 
       try {
@@ -123,6 +132,7 @@ async function tick() {
         const result = await postWebhook(payload);
         console.log(`[webhook] delivered ${key} matched=${result?.matched ?? "?"} delivered=${result?.delivered ?? "?"}`);
         sentState.add(key);
+        delivered += Number(result?.delivered || 0);
         if (sentState.size > 1000) {
           sentState = new Set(Array.from(sentState).slice(-1000));
         }
@@ -133,9 +143,12 @@ async function tick() {
     }
   } catch (err) {
     console.error("[webhook] tick failed:", err.message);
+    throw err;
   } finally {
     running = false;
   }
+
+  return { seen, delivered };
 }
 
 function startWebhookNotifier() {
@@ -153,4 +166,5 @@ function startWebhookNotifier() {
 
 module.exports = {
   startWebhookNotifier,
+  runTick,
 };

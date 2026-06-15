@@ -10,7 +10,7 @@ const PlayController = require("./controllers/playController");
 const cache = require("./middleware/cache");
 const Animepahe = require("./scrapers/animepahe");
 const flaresolverr = require("./utils/flaresolverr");
-const { startWebhookNotifier } = require("./utils/webhookNotifier");
+const { startWebhookNotifier, runTick } = require("./utils/webhookNotifier");
 
 // Load environment variables into Config
 try {
@@ -88,6 +88,22 @@ const router = express.Router();
 router.get("/image", proxyImage);
 
 router.get("/download-proxy", PlayController.proxyDownload);
+router.post("/webhook-check", express.json(), async (req, res) => {
+  const expected = process.env.WEBHOOK_SECRET || "";
+  const provided = req.headers["x-webhook-secret"] || "";
+
+  if (expected && provided !== expected) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+
+  try {
+    const animeSession = String(req.body?.anime_session || "").trim() || null;
+    const result = await runTick({ animeSession });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "webhook-check failed" });
+  }
+});
 
 // ─── Anime routes ───
 // NOTE: animeInfoRoutes (/:id, /:id/releases) MUST come before playRoutes (/:id/:ep)
