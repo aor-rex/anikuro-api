@@ -547,8 +547,21 @@ class RequestManager {
         try {
           return flaresolverr.extractJson(body);
         } catch (err) {
-          if (!Config.cookies) throw err;
-          console.warn("[fetchApiData] FlareSolverr returned non-JSON for API route, falling back to cookie-based axios fetch");
+          console.warn("[fetchApiData] FlareSolverr returned non-JSON for API route");
+          try {
+            const freshCookies = await flaresolverr.fetchCookies(Config.getUrl("home"));
+            if (freshCookies) {
+              Config.setCookies(freshCookies);
+              cookieHeader = freshCookies;
+              console.warn("[fetchApiData] Refreshed cookies from FlareSolverr before axios fallback");
+            }
+          } catch (cookieErr) {
+            console.warn(
+              `[fetchApiData] Failed to refresh cookies from FlareSolverr: ${cookieErr.message}`,
+            );
+          }
+          if (!cookieHeader) throw err;
+          console.warn("[fetchApiData] Falling back to cookie-based axios fetch");
         }
       }
 
