@@ -345,7 +345,7 @@ async function fetchCookies(url) {
   }
   const cookies = data.solution.cookies || [];
   const header = cookies
-    .filter((c) => c.name && c.value && !c.name.startsWith("_"))
+    .filter((c) => c.name && c.value)
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
   if (!header) throw new Error("FlareSolverr returned no cookies");
