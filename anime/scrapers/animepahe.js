@@ -5,6 +5,7 @@ const { JSDOM } = require("jsdom");
 const vm = require("vm");
 const RequestManager = require("../utils/requestManager");
 const flaresolverr = require("../utils/flaresolverr");
+const { launchBrowser } = require("../utils/browser");
 const { CustomError } = require("../middleware/errorHandler");
 const os = require("os");
 

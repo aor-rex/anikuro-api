@@ -536,13 +536,20 @@ class RequestManager {
 
   static async fetchApiData(url, params = {}, cookieHeader) {
     try {
+      cookieHeader = cookieHeader || Config.cookies || null;
       if (flaresolverr.isEnabled()) {
         const target = new URL(url);
         Object.keys(params).forEach((key) => {
           target.searchParams.append(key, params[key]);
         });
         const { body } = await flaresolverr.get(target.toString());
-        return url.includes("/api") ? flaresolverr.extractJson(body) : body;
+        if (!url.includes("/api")) return body;
+        try {
+          return flaresolverr.extractJson(body);
+        } catch (err) {
+          if (!Config.cookies) throw err;
+          console.warn("[fetchApiData] FlareSolverr returned non-JSON for API route, falling back to cookie-based axios fetch");
+        }
       }
 
       if (!cookieHeader) {
