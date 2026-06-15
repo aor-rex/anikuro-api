@@ -1,4 +1,7 @@
+const axios = require("axios");
 const PlayModel = require("../models/playModel");
+const Animepahe = require("../scrapers/animepahe");
+const Config = require("../utils/config");
 const { CustomError } = require("../middleware/errorHandler");
 
 class PlayController {
@@ -21,6 +24,72 @@ class PlayController {
       const links = await PlayModel.getStreamingLinks(id, ep, includeDownloads);
 
       return res.json(links);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async proxyDownload(req, res, next) {
+    try {
+      const target = String(req.query.url || '').trim();
+      if (!target) {
+        throw new CustomError('url is required', 400);
+      }
+
+      let parsed;
+      try {
+        parsed = new URL(target);
+      } catch (_) {
+        throw new CustomError('invalid url', 400);
+      }
+
+      const host = parsed.hostname.toLowerCase();
+      const allowedHosts = [
+        'uwucdn', 'owocdn', 'hakunaymatata', 'animepahe', 'pahe', 'kwik'
+      ];
+      if (!allowedHosts.some((token) => host.includes(token))) {
+        throw new CustomError('domain not allowed', 403);
+      }
+
+      const headers = {
+        'User-Agent': Config.userAgent,
+        'Referer': 'https://kwik.cx/',
+        'Origin': 'https://kwik.cx'
+      };
+
+      const cdnCookies = Animepahe.getCdnCookies();
+      if (cdnCookies) headers.Cookie = cdnCookies;
+
+      if (req.headers.range) headers.Range = req.headers.range;
+
+      const upstream = await axios.get(target, {
+        responseType: 'stream',
+        headers,
+        timeout: 30000,
+        validateStatus: () => true
+      });
+
+      if (upstream.status >= 400) {
+        const chunks = [];
+        for await (const chunk of upstream.data) {
+          chunks.push(chunk);
+          if (chunks.reduce((n, b) => n + b.length, 0) >= 2048) break;
+        }
+        const preview = Buffer.concat(chunks).toString('utf8', 0, 2048);
+        console.error(`[download-proxy] upstream blocked: status=${upstream.status} host=${host} preview=${preview.slice(0, 160).replace(/\s+/g, ' ')}`);
+        throw new CustomError('download upstream blocked', 502);
+      }
+
+      const passthrough = [
+        'content-type', 'content-length', 'content-disposition',
+        'accept-ranges', 'content-range', 'etag', 'last-modified'
+      ];
+      for (const key of passthrough) {
+        const value = upstream.headers[key];
+        if (value) res.setHeader(key, value);
+      }
+      res.status(upstream.status);
+      upstream.data.pipe(res);
     } catch (error) {
       next(error);
     }
