@@ -10,6 +10,7 @@ const PlayController = require("./controllers/playController");
 const cache = require("./middleware/cache");
 const Animepahe = require("./scrapers/animepahe");
 const flaresolverr = require("./utils/flaresolverr");
+const { startWebhookNotifier } = require("./utils/webhookNotifier");
 
 // Load environment variables into Config
 try {
@@ -38,6 +39,7 @@ if (!flaresolverr.isEnabled()) {
 Animepahe.initialize().catch((err) =>
   console.error("[Startup] Cookie pre-fetch error:", err.message),
 );
+startWebhookNotifier();
 
 // ─── Image proxy endpoint ───
 // Uses Cloudflare cookies (extracted at startup via FlareSolverr) to
