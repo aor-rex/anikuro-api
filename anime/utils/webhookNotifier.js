@@ -106,25 +106,38 @@ async function tick() {
 async function runTick(options = {}) {
   if (running || !isEnabled()) return;
   running = true;
+  let seen = 0;
+  let delivered = 0;
+  let missingEpisodeSession = 0;
+  let alreadySent = 0;
+  let unresolvedDownloads = 0;
+  let matchedTarget = 0;
 
   try {
     await loadState();
     const airing = await HomeModel.getAiringAnime(1);
     const items = Array.isArray(airing?.data) ? airing.data : [];
     const targetSession = String(options.animeSession || "").trim() || null;
-    let seen = 0;
-    let delivered = 0;
 
     for (const item of items) {
       if (targetSession && String(item.anime_session || "") !== targetSession) continue;
+      matchedTarget += 1;
       const key = buildKey(item);
-      if (!item.episode_session) continue;
+      if (!item.episode_session) {
+        missingEpisodeSession += 1;
+        console.warn(`[webhook] skip missing episode_session: ${item.anime_session || "unknown"} ep=${item.episode || "?"}`);
+        continue;
+      }
       seen += 1;
-      if (sentState.has(key)) continue;
+      if (sentState.has(key)) {
+        alreadySent += 1;
+        continue;
+      }
 
       try {
         const payload = await buildPayload(item);
         if (!payload) {
+          unresolvedDownloads += 1;
           console.warn(`[webhook] skip unresolved downloads: ${item.title || item.anime_title || item.anime_session}`);
           continue;
         }
@@ -148,7 +161,14 @@ async function runTick(options = {}) {
     running = false;
   }
 
-  return { seen, delivered };
+  return {
+    matchedTarget,
+    seen,
+    delivered,
+    missingEpisodeSession,
+    alreadySent,
+    unresolvedDownloads,
+  };
 }
 
 function startWebhookNotifier() {
