@@ -6,6 +6,7 @@ const queueRoutes = require("./routes/queueRoutes");
 const animeListRoutes = require("./routes/animeListRoutes");
 const animeInfoRoutes = require("./routes/animeInfoRoutes");
 const playRoutes = require("./routes/playRoutes");
+const PlayController = require("./controllers/playController");
 const cache = require("./middleware/cache");
 const Animepahe = require("./scrapers/animepahe");
 const flaresolverr = require("./utils/flaresolverr");
@@ -83,6 +84,8 @@ const router = express.Router();
 
 // Image proxy — no cache because images change
 router.get("/image", proxyImage);
+
+router.get("/download-proxy", PlayController.proxyDownload);
 
 // ─── Anime routes ───
 // NOTE: animeInfoRoutes (/:id, /:id/releases) MUST come before playRoutes (/:id/:ep)

@@ -8,6 +8,7 @@ const queueRoutes = require("../routes/queueRoutes");
 const animeListRoutes = require("../routes/animeListRoutes");
 const animeInfoRoutes = require("../routes/animeInfoRoutes");
 const playRoutes = require("../routes/playRoutes");
+const PlayController = require("../controllers/playController");
 const cache = require("../middleware/cache");
 const testRoutes = require("../routes/testRoutes");
 
