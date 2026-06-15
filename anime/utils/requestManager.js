@@ -549,7 +549,7 @@ class RequestManager {
         } catch (err) {
           console.warn("[fetchApiData] FlareSolverr returned non-JSON for API route");
           try {
-            const freshCookies = await flaresolverr.fetchCookies(Config.getUrl("home"));
+            const freshCookies = await flaresolverr.fetchCookies(target.toString());
             if (freshCookies) {
               Config.setCookies(freshCookies);
               cookieHeader = freshCookies;

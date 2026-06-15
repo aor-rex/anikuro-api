@@ -102,6 +102,32 @@ class Animepahe {
         );
       }
 
+      try {
+        const apiCookieHeader = await flaresolverr.fetchCookies(
+          `${Config.baseUrl}/api?m=airing&page=1`,
+        );
+        if (apiCookieHeader && Config.cookies) {
+          const merged = Config.cookies + "; " + apiCookieHeader;
+          const unique = new Map();
+          merged.split("; ").forEach((c) => {
+            const [k, ...v] = c.split("=");
+            if (k && v.length) unique.set(k.trim(), v.join("="));
+          });
+          Config.setCookies(
+            [...unique].map(([k, v]) => k + "=" + v).join("; "),
+          );
+          console.log("[animepahe] ✅ API route cookies extracted");
+        } else if (apiCookieHeader) {
+          Config.setCookies(apiCookieHeader);
+          console.log("[animepahe] ✅ API route cookies extracted");
+        }
+      } catch (err) {
+        console.warn(
+          "[animepahe] ⚠️ API route cookie extraction failed:",
+          err.message,
+        );
+      }
+
       // Also fetch cookies for i.animepahe.pw (image CDN)
       try {
         const imgCookies = await flaresolverr.fetchCookies(
