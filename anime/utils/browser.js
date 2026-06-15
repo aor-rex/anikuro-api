@@ -56,6 +56,14 @@ function resolveBrowserRuntime() {
 async function launchBrowser() {
     const { chromium, chromiumBinary, useServerlessChromium } = resolveBrowserRuntime();
     const isServerless = process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME;
+    const isContainerizedLinux =
+        os.platform() === 'linux' &&
+        (
+            process.env.CONTAINER === 'true' ||
+            process.env.DOCKER === 'true' ||
+            process.env.KUBERNETES_SERVICE_HOST ||
+            existsSync('/.dockerenv')
+        );
     
     const baseArgs = [
         '--no-sandbox',
@@ -97,7 +105,8 @@ async function launchBrowser() {
         ? String(process.env.CHROME_HEADLESS).toLowerCase() === 'true'
         : null;
 
-    const defaultHeadless = isServerless ? true : false;
+    // Containers usually do not have a usable display server, so default to headless there too.
+    const defaultHeadless = isServerless || isContainerizedLinux ? true : false;
 
     const launchOptions = {
         headless: envHeadless === null ? defaultHeadless : envHeadless,

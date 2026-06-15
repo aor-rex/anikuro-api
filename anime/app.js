@@ -29,6 +29,11 @@ try {
 // are ready in the background. If pre-fetch fails, requests fall back
 // to Playwright automatically.
 console.log("\x1b[36m%s\x1b[0m", "Starting cookie pre-fetch (non-blocking)...");
+if (!flaresolverr.isEnabled()) {
+  console.warn(
+    "[anime] FlareSolverr is not enabled. Browser cookie fallback is disabled for this deployment.",
+  );
+}
 Animepahe.initialize().catch((err) =>
   console.error("[Startup] Cookie pre-fetch error:", err.message),
 );

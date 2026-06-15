@@ -5,7 +5,6 @@ const { JSDOM } = require("jsdom");
 const vm = require("vm");
 const RequestManager = require("../utils/requestManager");
 const flaresolverr = require("../utils/flaresolverr");
-const { launchBrowser } = require("../utils/browser");
 const { CustomError } = require("../middleware/errorHandler");
 const os = require("os");
 
@@ -78,7 +77,7 @@ class Animepahe {
    * TOTAL TIME: ~30-60s (one-time at startup)
    * AFTER THIS: All requests use axios + cookies (~0.5-2s each)
    *
-   * If this fails, the server still starts — requests will use Playwright fallback.
+   * If FlareSolverr is disabled, startup skips browser-based cookie solving.
    */
   async initialize() {
     if (flaresolverr.isEnabled()) {
@@ -124,126 +123,11 @@ class Animepahe {
       }
       return true;
     }
-
-    console.log("\x1b[33m%s\x1b[0m", "═══════════════════════════════════════════");
-    console.log("\x1b[33m%s\x1b[0m", "  Cookie Pre-fetch — Solving Cloudflare...");
-    console.log("\x1b[33m%s\x1b[0m", "═══════════════════════════════════════════");
-    const start = Date.now();
-
-    // Check if we already have valid cookies from a previous run
-    if (!this.needsCookieRefreshSync()) {
-      try {
-        const cookieData = JSON.parse(await fs.readFile(this.cookiesPath, "utf8"));
-        const cookieHeader = cookieData.cookies
-          .map((cookie) => `${cookie.name}=${cookie.value}`)
-          .join("; ");
-        Config.setCookies(cookieHeader);
-        console.log(`\x1b[32m%s\x1b[0m`, `[Cookie Pre-fetch] ✅ Valid cookies found on disk (${Math.round((Date.now() - cookieData.timestamp) / 60000)}min old). Reusing.`);
-        this.browserReady = true;
-        return true;
-      } catch {
-        // No valid cookies — need to solve challenge
-      }
-    }
-
-    try {
-      // Launch browser ONCE at startup
-      console.log("[Cookie Pre-fetch] Launching Chromium...");
-      this.persistentBrowser = await launchBrowser();
-      const context = await this.persistentBrowser.newContext();
-      const page = await context.newPage();
-
-      // Add stealth (same as refreshCookies)
-      await context.addInitScript(() => {
-        Object.defineProperty(navigator, "webdriver", { get: () => false });
-        Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3] });
-        Object.defineProperty(navigator, "languages", {
-          get: () => ["en-US", "en"],
-        });
-        const originalQuery = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) =>
-          parameters.name === "notifications"
-            ? Promise.resolve({ state: Notification.permission })
-            : originalQuery(parameters);
-      });
-
-      // Navigate to animepahe.pw and wait for DDoS-Guard
-      console.log("[Cookie Pre-fetch] Navigating to animepahe.pw...");
-      await page.goto(Config.getUrl("home"), {
-        waitUntil: "domcontentloaded",
-        timeout: 60000,
-      });
-
-      // Wait for Cloudflare challenge to solve
-      console.log("[Cookie Pre-fetch] Waiting for Cloudflare challenge...");
-      try {
-        await page.waitForFunction(
-          () => !document.title.includes("Just a moment"),
-          { timeout: 60000 }
-        );
-        console.log("[Cookie Pre-fetch] ✅ Challenge solved");
-      } catch {
-        console.log("[Cookie Pre-fetch] ⚠️ Challenge wait timed out, continuing anyway...");
-      }
-
-      // Visit /api for API-specific session cookies
-      console.log("[Cookie Pre-fetch] Visiting /api endpoint...");
-      try {
-        await page.goto(Config.getUrl("home") + "api", {
-          waitUntil: "domcontentloaded",
-          timeout: 15000,
-        });
-        await page.waitForTimeout(2000);
-      } catch {
-        // /api may return JSON — cookies still captured
-      }
-
-      // Extract cookies
-      const cookies = await context.cookies();
-      if (!cookies || cookies.length === 0) {
-        throw new CustomError("No cookies found after page load", 503);
-      }
-
-      // Save to disk
-      const cookieData = { timestamp: Date.now(), cookies };
-      await fs.mkdir(path.dirname(this.cookiesPath), { recursive: true });
-      await fs.writeFile(this.cookiesPath, JSON.stringify(cookieData, null, 2));
-
-      // Also set in Config for immediate use
-      const cookieHeader = cookies
-        .map((cookie) => `${cookie.name}=${cookie.value}`)
-        .join("; ");
-      Config.setCookies(cookieHeader);
-
-      // Close the page but KEEP the browser alive
-      await page.close();
-      await context.close();
-
-      const elapsed = Date.now() - start;
-      this.browserReady = true;
-      console.log("\x1b[32m%s\x1b[0m", `═══════════════════════════════════════════`);
-      console.log("\x1b[32m%s\x1b[0m", `[Cookie Pre-fetch] ✅ Complete in ${Math.round(elapsed / 1000)}s`);
-      console.log("\x1b[32m%s\x1b[0m", `  Cookies: ${cookies.length} saved to ${this.cookiesPath}`);
-      console.log("\x1b[32m%s\x1b[0m", `  Browser: kept alive for fallback`);
-      console.log("\x1b[32m%s\x1b[0m", `  All requests will now use axios + cookies (~1-2s)`);
-      console.log("\x1b[32m%s\x1b[0m", "═══════════════════════════════════════════");
-
-      return true;
-    } catch (error) {
-      const elapsed = Date.now() - start;
-      console.error(
-        `\x1b[31m%s\x1b[0m`,
-        `[Cookie Pre-fetch] ❌ Failed after ${Math.round(elapsed / 1000)}s: ${error.message}`,
-      );
-      console.log(
-        "\x1b[33m%s\x1b[0m",
-        "[Cookie Pre-fetch] ⚠️ Server will still work — requests will use Playwright fallback",
-      );
-      this.browserReady = false;
-      return false;
-    } finally {
-      this.isRefreshingCookies = false;
-    }
+    console.warn(
+      "[animepahe] FlareSolverr disabled; skipping browser-based cookie pre-fetch.",
+    );
+    this.browserReady = false;
+    return false;
   }
 
   /**
@@ -284,90 +168,10 @@ class Animepahe {
       return;
     }
 
-    if (this.isRefreshingCookies) return;
-    this.isRefreshingCookies = true;
-
-    return browserLimit(async () => {
-    let browser = this.activeBrowser;
-
-    try {
-      if (!browser) {
-        browser = await launchBrowser();
-        console.log("Browser launched successfully");
-        this.activeBrowser = browser; // Store the browser instance
-      }
-
-      const context = await browser.newContext();
-      const page = await context.newPage();
-
-      // Add stealth plugin
-      await context.addInitScript(() => {
-        Object.defineProperty(navigator, "webdriver", { get: () => false });
-        Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3] });
-        Object.defineProperty(navigator, "languages", {
-          get: () => ["en-US", "en"],
-        });
-        const originalQuery = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) =>
-          parameters.name === "notifications"
-            ? Promise.resolve({ state: Notification.permission })
-            : originalQuery(parameters);
-      });
-
-      console.log("Navigating to URL...");
-      await page.goto(Config.getUrl("home"), {
-        waitUntil: "domcontentloaded",
-        timeout: 60000,
-      });
-
-      // Wait for Cloudflare challenge to solve
-      console.log("Waiting for Cloudflare challenge...");
-      try {
-        await page.waitForFunction(
-          () => !document.title.includes("Just a moment"),
-          { timeout: 60000 }
-        );
-        console.log("✅ Challenge solved");
-      } catch {
-        console.log("⚠️ Challenge wait timed out, continuing anyway...");
-      }
-
-      // Also visit the /api endpoint to get API-specific session cookies
-      console.log("Visiting /api endpoint to ensure API cookies are set...");
-      try {
-        await page.goto(Config.getUrl("home") + "api", {
-          waitUntil: "domcontentloaded",
-          timeout: 15000,
-        });
-        await page.waitForTimeout(3000);
-      } catch (err) {
-        // /api may return JSON or redirect — cookies should still be set
-        console.log(
-          "API visit completed (or returned non-HTML — cookies still captured)",
-        );
-      }
-
-      const cookies = await context.cookies();
-      if (!cookies || cookies.length === 0) {
-        throw new CustomError("No cookies found after page load", 503);
-      }
-
-      const cookieData = {
-        timestamp: Date.now(),
-        cookies,
-      };
-
-      await fs.mkdir(path.dirname(this.cookiesPath), { recursive: true });
-      await fs.writeFile(this.cookiesPath, JSON.stringify(cookieData, null, 2));
-
-      console.log("Cookies refreshed successfully");
-    } catch (error) {
-      console.error("Cookie refresh error:", error);
-      throw new CustomError(`Failed to refresh cookies: ${error.message}`, 503);
-    } finally {
-      this.isRefreshingCookies = false;
-    }
-    });
+    throw new CustomError(
+      "FlareSolverr is required for anime requests; browser cookie refresh is disabled",
+      503,
+    );
   }
 
   async getCookies(userProvidedCookies = null) {
@@ -523,61 +327,26 @@ class Animepahe {
     const url = Config.getUrl("play", { id, episodeId });
 
     return browserLimit(async () => {
-    // ─── FAST PATH: Try FlareSolverr or axios with saved cookies ───
-    if (Config.cookies || flaresolverr.isEnabled()) {
-      try {
-        const source = flaresolverr.isEnabled() ? "FlareSolverr" : "cookies";
-        console.log(`[Play Page] Fast path: ${source}`);
-        const html = await RequestManager.fetchWithCookies(url);
+      const source = flaresolverr.isEnabled() ? "FlareSolverr" : "cookies";
+      console.log(`[Play Page] Primary path: ${source}`);
+      const html = await RequestManager.fetchWithCookies(url);
 
-        if (
-          html &&
-          html.length > 100 &&
-          !html.toLowerCase().includes("just a moment") &&
-          !html.toLowerCase().includes("checking your browser") &&
-          !html.toLowerCase().includes("ddos protection by cloudflare") &&
-          !html.toLowerCase().includes("ddg-cookie")
-        ) {
-          console.log(`[Play Page] ✅ Fast path success (${source})`);
-          return html;
-        }
-
-        console.log(`[Play Page] ⚠️ ${source} returned challenge page, falling back to Playwright`);
-      } catch (error) {
-        console.log(`[Play Page] ⚠️ Fast path failed (${error.message}), falling back to Playwright`);
-      }
-    }
-
-    // ─── FALLBACK: Use Playwright ───
-    console.log("[Play Page] Slow path: Playwright");
-    try {
-      const html = await RequestManager.fetch(url, null, "heavy");
-
-      if (!html) {
-        throw new CustomError("Failed to fetch play page", 503);
-      }
-      return html;
-    } catch (error) {
-      if (error.message && error.message.includes("Failed to fetch")) {
-        // Try one more time with cookie refresh
-        console.log(
-          "Playwright fetch failed, refreshing cookies and retrying...",
-        );
-        await this.refreshCookies();
-        const html = await RequestManager.fetch(url, null, "heavy");
-        if (!html) {
-          throw new CustomError(
-            "Failed to fetch play page after cookie refresh",
-            503,
-          );
-        }
+      if (
+        html &&
+        html.length > 100 &&
+        !html.toLowerCase().includes("just a moment") &&
+        !html.toLowerCase().includes("checking your browser") &&
+        !html.toLowerCase().includes("ddos protection by cloudflare") &&
+        !html.toLowerCase().includes("ddg-cookie")
+      ) {
+        console.log(`[Play Page] ✅ Primary path success (${source})`);
         return html;
       }
-      if (error.message && error.message.includes("not found")) {
-        throw new CustomError("Anime or episode not found", 404);
-      }
-      throw error;
-    }
+
+      throw new CustomError(
+        `Failed to fetch play page via ${source}; challenge page returned`,
+        503,
+      );
     });
   }
 

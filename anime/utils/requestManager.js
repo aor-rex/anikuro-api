@@ -656,8 +656,8 @@ class RequestManager {
       });
       
       await page.goto(fullUrl.toString(), {
-        waitUntil: "networkidle",
-        timeout: 30000,
+        waitUntil: "domcontentloaded",
+        timeout: 60000,
       });
       
       // Wait for JSON response
