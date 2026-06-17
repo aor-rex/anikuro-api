@@ -16,10 +16,28 @@ class AnimeInfoModel {
     }
     
     static async getAnimeReleases(animeId, sort, page) {
-        const results = await Animepahe.getData("releases", { animeId, sort, page });
+        const MAX_ATTEMPTS = 3;
+        let lastError = null;
+        let results = null;
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                results = await Animepahe.getData("releases", { animeId, sort, page });
+                break;
+            } catch (error) {
+                lastError = error;
+                const status = error?.statusCode || error?.response?.status || 0;
+                const transient = status >= 500 || status === 0;
+                if (!transient || attempt === MAX_ATTEMPTS) {
+                    throw error;
+                }
+                console.warn(`[releases] transient failure for ${animeId} page=${page || 1} attempt=${attempt}/${MAX_ATTEMPTS}: ${error.message}`);
+                await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+            }
+        }
 
         if (!results) {
-            throw new CustomError('Failed to fetch anime releases', 503);
+            throw lastError || new CustomError('Failed to fetch anime releases', 503);
         }
 
         if (typeof results === 'object' && !results.data) {
