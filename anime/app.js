@@ -58,28 +58,96 @@ async function proxyImage(req, res) {
     return res.status(403).json({ error: "Domain not allowed" });
   }
 
-  const headers = {
-    Referer: "https://animepahe.pw/",
-    "User-Agent": Config.userAgent,
-  };
-  if (Config.cookies) headers.Cookie = Config.cookies;
-
+  let parsed;
   try {
-    const resp = await axios.get(imageUrl, {
-      responseType: "stream",
-      headers,
-      timeout: 15000,
-    });
-    for (const [key, val] of Object.entries(resp.headers)) {
-      if (key !== "transfer-encoding" && key !== "connection") {
-        res.setHeader(key, val);
+    parsed = new URL(imageUrl);
+  } catch (_) {
+    return res.status(400).json({ error: "Invalid image URL" });
+  }
+
+  const cookieCandidates = [
+    Animepahe.getCdnCookies(),
+    Config.cookies,
+  ].filter(Boolean);
+
+  if (flaresolverr.isEnabled()) {
+    try {
+      const solvedCookies = await flaresolverr.fetchCookies(imageUrl);
+      if (solvedCookies) cookieCandidates.unshift(solvedCookies);
+    } catch (err) {
+      console.warn(`[image-proxy] flaresolverr cookie fetch failed: ${err.message}`);
+    }
+  }
+
+  const headerProfiles = [
+    { Referer: "https://animepahe.pw/" },
+    { Referer: parsed.origin + "/" },
+    {},
+  ];
+
+  const cookieProfiles = cookieCandidates.length ? cookieCandidates : [null];
+  let upstream = null;
+  let lastFailure = null;
+
+  for (const cookie of cookieProfiles) {
+    for (const profile of headerProfiles) {
+      const headers = {
+        "User-Agent": Config.userAgent,
+        ...profile,
+      };
+      if (cookie) headers.Cookie = cookie;
+
+      try {
+        const candidate = await axios.get(imageUrl, {
+          responseType: "stream",
+          headers,
+          timeout: 15000,
+          validateStatus: () => true,
+        });
+
+        if (candidate.status < 400) {
+          upstream = candidate;
+          break;
+        }
+
+        const chunks = [];
+        for await (const chunk of candidate.data) {
+          chunks.push(chunk);
+          if (chunks.reduce((n, b) => n + b.length, 0) >= 2048) break;
+        }
+        const preview = Buffer.concat(chunks).toString("utf8", 0, 2048);
+        lastFailure = {
+          status: candidate.status,
+          preview,
+          headers,
+          contentType: candidate.headers["content-type"] || "",
+        };
+        console.warn(`[image-proxy] blocked with status=${candidate.status} host=${parsed.hostname} referer=${headers.Referer || "-"} cookie=${cookie ? "yes" : "no"}`);
+      } catch (err) {
+        lastFailure = {
+          status: 0,
+          preview: err.message,
+          headers,
+          contentType: "",
+        };
+        console.warn(`[image-proxy] request failed host=${parsed.hostname} referer=${headers.Referer || "-"} cookie=${cookie ? "yes" : "no"} err=${err.message}`);
       }
     }
-    return resp.data.pipe(res);
-  } catch (err) {
-    console.error(`[Image Proxy] Failed: ${imageUrl} — ${err.message}`);
-    res.status(502).json({ error: "Failed to fetch image" });
+    if (upstream) break;
   }
+
+  if (!upstream) {
+    const preview = String(lastFailure?.preview || "").slice(0, 160).replace(/\s+/g, " ");
+    console.error(`[image-proxy] upstream blocked: status=${lastFailure?.status || 0} host=${parsed.hostname} ctype=${lastFailure?.contentType || "-"} preview=${preview}`);
+    return res.status(502).json({ error: "Failed to fetch image" });
+  }
+
+  for (const [key, val] of Object.entries(upstream.headers)) {
+    if (key !== "transfer-encoding" && key !== "connection") {
+      res.setHeader(key, val);
+    }
+  }
+  return upstream.data.pipe(res);
 }
 
 const router = express.Router();
