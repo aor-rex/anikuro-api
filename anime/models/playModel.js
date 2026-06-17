@@ -322,7 +322,12 @@ class PlayModel {
                 };
             });
 
-            const allSources = await this.processHybridOptimized(id, episodeId, resolutionData);
+            let allSources = await this.processHybridOptimized(id, episodeId, resolutionData);
+            const resolvedSourceCount = allSources.flat().filter(source => source && source.url).length;
+            if (resolutionData.length > 0 && resolvedSourceCount === 0) {
+                console.warn('[PlayModel] Parallel iframe extraction resolved 0 sources, retrying sequentially...');
+                allSources = await this.processSequentialFallback(id, episodeId, resolutionData);
+            }
             
             // fast download links map
             const fastDownloadMap = new Map();
@@ -431,6 +436,9 @@ class PlayModel {
 
                 try {
                     const sources = await Promise.race([scrapePromise, timeoutPromise]);
+                    if (!Array.isArray(sources) || sources.length === 0) {
+                        throw new Error('No iframe sources resolved');
+                    }
 
                     return sources.map(source => ({
                         ...source,
@@ -483,6 +491,9 @@ class PlayModel {
             const data = items[i];
             try {
                 const sources = await Animepahe.scrapeIframe(id, episodeId, data.url);
+                if (!Array.isArray(sources) || sources.length === 0) {
+                    throw new Error('No iframe sources resolved');
+                }
 
                 const sourcesWithMeta = sources.map(source => ({
                     ...source,
