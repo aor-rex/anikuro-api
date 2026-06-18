@@ -192,6 +192,7 @@ function toResult(data) {
   return {
     status: data.solution.status,
     body: data.solution.response,
+    headers: data.solution.headers || {},
     cookies: data.solution.cookies || [],
     userAgent: data.solution.userAgent,
   };

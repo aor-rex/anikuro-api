@@ -137,6 +137,28 @@ async function proxyImage(req, res) {
   }
 
   if (!upstream) {
+    if (flaresolverr.isEnabled()) {
+      try {
+        const solved = await flaresolverr.get(imageUrl);
+        const body = solved?.body;
+        const headers = solved?.headers || {};
+        const contentType = headers["content-type"] || headers["Content-Type"] || "";
+        const looksHtml = typeof body === "string" && /<(?:!doctype|html|body|script)\b/i.test(body);
+
+        if (body && !looksHtml) {
+          if (contentType) {
+            res.setHeader("content-type", contentType);
+          }
+          const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body, "binary");
+          return res.status(200).send(buffer);
+        }
+
+        console.warn(`[image-proxy] flaresolverr fallback returned non-image body host=${parsed.hostname} ctype=${contentType || "-"}`);
+      } catch (err) {
+        console.warn(`[image-proxy] flaresolverr body fetch failed: ${err.message}`);
+      }
+    }
+
     const preview = String(lastFailure?.preview || "").slice(0, 160).replace(/\s+/g, " ");
     console.error(`[image-proxy] upstream blocked: status=${lastFailure?.status || 0} host=${parsed.hostname} ctype=${lastFailure?.contentType || "-"} preview=${preview}`);
     return res.status(502).json({ error: "Failed to fetch image" });
