@@ -1,4 +1,5 @@
 const axios = require("axios");
+const RequestManager = require("../utils/requestManager");
 const PlayModel = require("../models/playModel");
 const Animepahe = require("../scrapers/animepahe");
 const flaresolverr = require("../utils/flaresolverr");
@@ -52,76 +53,24 @@ class PlayController {
         throw new CustomError('domain not allowed', 403);
       }
 
-      const cookieCandidates = [
-        Animepahe.getCdnCookies(),
-        Config.cookies
-      ].filter(Boolean);
-      if (flaresolverr.isEnabled()) {
-        try {
-          const solvedCookies = await flaresolverr.fetchCookies(target);
-          if (solvedCookies) cookieCandidates.unshift(solvedCookies);
-        } catch (err) {
-          console.warn(`[download-proxy] flaresolverr cookie fetch failed: ${err.message}`);
-        }
-      }
-
-      const headerProfiles = [
-        { Referer: 'https://kwik.cx/', Origin: 'https://kwik.cx' },
-        { Referer: 'https://animepahe.pw/' },
-        { Referer: parsed.origin + '/' },
-        {}
-      ];
-
+      const headers = {
+        'User-Agent': Config.userAgent,
+        Referer: 'https://kwik.cx/',
+        Origin: 'https://kwik.cx',
+      };
       if (req.headers.range) {
-        headerProfiles.forEach((profile) => {
-          profile.Range = req.headers.range;
-        });
+        headers.Range = req.headers.range;
       }
 
-      const cookieProfiles = cookieCandidates.length ? cookieCandidates : [null];
-      let upstream = null;
-      let lastFailure = null;
+      const response = await RequestManager.cloudscraperGet(target, {
+        headers,
+        encoding: null,
+        timeout: 60000,
+      });
 
-      for (const cookie of cookieProfiles) {
-        for (const profile of headerProfiles) {
-          const headers = {
-            'User-Agent': Config.userAgent,
-            ...profile
-          };
-          if (cookie) headers.Cookie = cookie;
-
-          try {
-            const candidate = await axios.get(target, {
-              responseType: 'stream',
-              headers,
-              timeout: 30000,
-              validateStatus: () => true
-            });
-
-            if (candidate.status < 400) {
-              upstream = candidate;
-              break;
-            }
-
-            const chunks = [];
-            for await (const chunk of candidate.data) {
-              chunks.push(chunk);
-              if (chunks.reduce((n, b) => n + b.length, 0) >= 2048) break;
-            }
-            const preview = Buffer.concat(chunks).toString('utf8', 0, 2048);
-            lastFailure = { status: candidate.status, preview, headers };
-            console.warn(`[download-proxy] blocked with status=${candidate.status} host=${host} referer=${headers.Referer || '-'} cookie=${cookie ? 'yes' : 'no'}`);
-          } catch (err) {
-            lastFailure = { status: 0, preview: err.message, headers };
-            console.warn(`[download-proxy] request failed host=${host} referer=${headers.Referer || '-'} cookie=${cookie ? 'yes' : 'no'} err=${err.message}`);
-          }
-        }
-        if (upstream) break;
-      }
-
-      if (!upstream) {
-        const preview = String(lastFailure?.preview || '').slice(0, 160).replace(/\s+/g, ' ');
-        console.error(`[download-proxy] upstream blocked: status=${lastFailure?.status || 0} host=${host} preview=${preview}`);
+      if (response.statusCode >= 400) {
+        const preview = String(response.body || '').slice(0, 160).replace(/\s+/g, ' ');
+        console.error(`[download-proxy] upstream blocked: status=${response.statusCode} host=${host} preview=${preview}`);
         throw new CustomError('download upstream blocked', 502);
       }
 
@@ -130,11 +79,25 @@ class PlayController {
         'accept-ranges', 'content-range', 'etag', 'last-modified'
       ];
       for (const key of passthrough) {
-        const value = upstream.headers[key];
+        const value = response.headers[key];
         if (value) res.setHeader(key, value);
       }
-      res.status(upstream.status);
-      upstream.data.pipe(res);
+
+      const body = response.body;
+      if (Buffer.isBuffer(body)) {
+        res.status(response.statusCode);
+        res.end(body);
+      } else if (typeof body === 'string') {
+        const buf = Buffer.from(body, 'utf8');
+        if (!res.getHeader('content-length')) {
+          res.setHeader('content-length', buf.length);
+        }
+        res.status(response.statusCode);
+        res.end(buf);
+      } else {
+        res.status(response.statusCode);
+        body.pipe(res);
+      }
     } catch (error) {
       next(error);
     }

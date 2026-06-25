@@ -9,7 +9,7 @@ class RequestManager {
   /**
    * Domains accessible directly from local machine (no FlareSolverr needed)
    */
-  static LOCAL_DOMAINS = ["kwik", "uwucdn", "uwu"];
+  static LOCAL_DOMAINS = ["kwik", "uwucdn", "uwu", "owocdn"];
 
   /**
    * Check if a URL should be fetched directly (not through FlareSolverr)
@@ -43,6 +43,7 @@ class RequestManager {
       headers = {},
       form = null,
       json = null,
+      encoding,
       followRedirect = true,
       followAllRedirects = false,
       timeout = 8000,
@@ -91,6 +92,9 @@ class RequestManager {
       resolveWithFullResponse,
       timeout,
     };
+    if (encoding !== undefined) {
+      requestOptions.encoding = encoding;
+    }
 
     // Add body data if provided
     if (form) {
