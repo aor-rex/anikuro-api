@@ -170,55 +170,107 @@ class RequestManager {
   }
 
   /**
-   * Fast path: fetch a page using saved cookies (no browser launch).
+   * Fetch a play page: try cookies + axios first, fall back to FlareSolverr.
    *
-   * WHY THIS EXISTS:
-   * Previously, every request to animepahe.pw/play/... launched a full Chromium
-   * browser (~3-5s launch), waited for the DDoS-Guard challenge to solve
-   * (~15-40s), then extracted the HTML. Total: ~40-60s per play page request.
+   * WHY THIS ORDER:
+   * FlareSolverr launches a full Chrome browser per request (~0.5–2s each).
+   * Cloudflare rate-limits after ~5 rapid browser-based requests to
+   * animepahe.pw/play/..., causing subsequent episodes to fail.
    *
-   * This method uses cookies that were pre-fetched once at server startup
-   * (see Animepahe.initialize()). Since DDoS-Guard cookies are valid for ~14 days,
-   * we can attach them to a plain axios GET and skip the browser entirely.
-   * Total: ~0.5-2s per request.
-   *
-   * FALLBACK: If cookies are expired/invalid, the response will contain the
-   * DDoS-Guard challenge HTML. The caller detects this and falls back to
-   * scrapeWithPlaywright() which re-solves the challenge.
+   * Cookies + axios (~0.5s) don't trigger Turnstile, so we try that FIRST.
+   * Only when cookies fail (expired/missing) do we call FlareSolverr,
+   * then save the fresh cookies + User-Agent for next time.
    *
    * @param {string} url - Target URL on animepahe.pw
    * @returns {Promise<string>} HTML response body
    */
   static async fetchWithCookies(url) {
-    if (flaresolverr.isEnabled()) {
-      const { body } = await flaresolverr.get(url);
-      return body;
-    }
-
+    // 1. Try cookie-based axios first (fast path, avoids Turnstile)
     const cookieHeader = Config.cookies;
-    if (!cookieHeader) {
-      throw new CustomError(
-        "No cookies available — cookie pre-fetch not yet complete",
-        503,
-      );
+    if (cookieHeader) {
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            Cookie: cookieHeader,
+            Referer: Config.getUrl("home"),
+            "User-Agent": Config.userAgent,
+            Accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+          timeout: 15000,
+          maxRedirects: 5,
+        });
+
+        const html = typeof response.data === "string"
+          ? response.data
+          : JSON.stringify(response.data);
+
+        if (
+          html &&
+          html.length > 100 &&
+          !html.toLowerCase().includes("just a moment") &&
+          !html.toLowerCase().includes("checking your browser") &&
+          !html.toLowerCase().includes("ddos protection by cloudflare") &&
+          !html.toLowerCase().includes("ddg-cookie")
+        ) {
+          return html;
+        }
+
+        console.log(
+          "[fetchWithCookies] Cookies returned challenge page, falling back to FlareSolverr",
+        );
+      } catch (err) {
+        console.log(
+          `[fetchWithCookies] Cookie request: ${err.message}, falling back to FlareSolverr`,
+        );
+      }
     }
 
-    const response = await axios.get(url, {
-      headers: {
-        Cookie: cookieHeader,
-        Referer: Config.getUrl("home"),
-        "User-Agent": Config.userAgent,
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      timeout: 15000,
-      maxRedirects: 5,
-    });
+    // 2. Fall back to FlareSolverr
+    if (flaresolverr.isEnabled()) {
+      const result = await flaresolverr.get(url);
+      this._saveFlareResult(result);
+      return result.body;
+    }
 
-    return typeof response.data === "string"
-      ? response.data
-      : JSON.stringify(response.data);
+    // 3. No options left
+    throw new CustomError(
+      cookieHeader
+        ? "Cookies failed and FlareSolverr not enabled"
+        : "No cookies available — cookie pre-fetch not yet complete",
+      503,
+    );
+  }
+
+  /**
+   * Save cookies and User-Agent from a FlareSolverr result.
+   * Merges new cookies into existing Config.cookies (dedup by name).
+   */
+  static _saveFlareResult(result) {
+    if (result.cookies && result.cookies.length > 0) {
+      const newCookieStr = result.cookies
+        .filter((c) => c.name && c.value)
+        .map((c) => `${c.name}=${c.value}`)
+        .join("; ");
+      if (newCookieStr) {
+        const merged = Config.cookies
+          ? Config.cookies + "; " + newCookieStr
+          : newCookieStr;
+        const unique = new Map();
+        merged.split("; ").forEach((c) => {
+          const [k, ...v] = c.split("=");
+          if (k && v.length) unique.set(k.trim(), v.join("="));
+        });
+        Config.setCookies(
+          [...unique].map(([k, v]) => k + "=" + v).join("; "),
+        );
+        console.log("[fetchWithCookies] Saved fresh cookies from FlareSolverr");
+      }
+    }
+    if (result.userAgent) {
+      Config.userAgent = result.userAgent;
+    }
   }
 
   /**
@@ -541,15 +593,64 @@ class RequestManager {
   static async fetchApiData(url, params = {}, cookieHeader) {
     try {
       cookieHeader = cookieHeader || Config.cookies || null;
+
+      // 1. Try cookie-based axios first when we have cookies
+      if (cookieHeader) {
+        try {
+          const response = await axios.get(url, {
+            params,
+            headers: {
+              Accept: "application/json, text/javascript, */*; q=0.01",
+              "Accept-Language": "en-US,en;q=0.9",
+              Referer: Config.getUrl("home"),
+              "User-Agent": Config.userAgent,
+              "Sec-Fetch-*": "?",
+              dnt: "1",
+              "sec-ch-ua":
+                '"Not A(Brand";v="99", "Microsoft Edge";v="121", "Chromium";v="121"',
+              "sec-ch-ua-mobile": "?0",
+              "sec-ch-ua-platform": '"Windows"',
+              "sec-fetch-dest": "empty",
+              "sec-fetch-mode": "cors",
+              "sec-fetch-site": "same-origin",
+              "x-requested-with": "XMLHttpRequest",
+              Cookie: cookieHeader,
+            },
+            timeout: 15000,
+            maxRedirects: 5,
+          });
+
+          const responseText =
+            typeof response.data === "string"
+              ? response.data
+              : JSON.stringify(response.data);
+          if (
+            responseText.includes("DDoS-GUARD") ||
+            responseText.includes("checking your browser") ||
+            response.status === 403
+          ) {
+            console.log("[fetchApiData] Cookies failed, falling back to FlareSolverr");
+          } else {
+            return response.data;
+          }
+        } catch (err) {
+          console.log(
+            `[fetchApiData] Cookie request: ${err.message}, falling back to FlareSolverr`,
+          );
+        }
+      }
+
+      // 2. Fall back to FlareSolverr
       if (flaresolverr.isEnabled()) {
         const target = new URL(url);
         Object.keys(params).forEach((key) => {
           target.searchParams.append(key, params[key]);
         });
-        const { body } = await flaresolverr.get(target.toString());
-        if (!url.includes("/api")) return body;
+        const result = await flaresolverr.get(target.toString());
+        this._saveFlareResult(result);
+        if (!url.includes("/api")) return result.body;
         try {
-          return flaresolverr.extractJson(body);
+          return flaresolverr.extractJson(result.body);
         } catch (err) {
           console.warn("[fetchApiData] FlareSolverr returned non-JSON for API route");
           try {

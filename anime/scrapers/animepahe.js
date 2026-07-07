@@ -354,8 +354,9 @@ class Animepahe {
     const url = Config.getUrl("play", { id, episodeId });
 
     return browserLimit(async () => {
-      const source = flaresolverr.isEnabled() ? "FlareSolverr" : "cookies";
-      console.log(`[Play Page] Primary path: ${source}`);
+      const hasCookies = !!Config.cookies;
+      const hasFlare = flaresolverr.isEnabled();
+      console.log(`[Play Page] cookies=${hasCookies} flaresolverr=${hasFlare}`);
       const html = await RequestManager.fetchWithCookies(url);
 
       if (
@@ -366,12 +367,11 @@ class Animepahe {
         !html.toLowerCase().includes("ddos protection by cloudflare") &&
         !html.toLowerCase().includes("ddg-cookie")
       ) {
-        console.log(`[Play Page] ✅ Primary path success (${source})`);
         return html;
       }
 
       throw new CustomError(
-        `Failed to fetch play page via ${source}; challenge page returned`,
+        "Failed to fetch play page — cookies failed and FlareSolverr unavailable or also failed",
         503,
       );
     });
