@@ -12,9 +12,8 @@ license: mit
 
 A unified REST API gateway for **Anime** and **Manga** — scraping streaming links, episode data, manga details, and chapter images from popular sources.
 
-> **⚠️ Notice:** The hosted instance is for **testing purposes only**. For production use, **host your own instance** to avoid rate limits and IP bans.
+> **⚠️ Notice:** The hosted instance is for **testing purposes only**. For production use, **host your own instance** to avoid rate limits and IP baError: Error solving the challenge. Timeout after 35.0 seconds.ns.
 
----
 
 ## Credits & Acknowledgments
 

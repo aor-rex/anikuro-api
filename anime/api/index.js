@@ -54,6 +54,13 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Global request/response timeout — prevents slow upstream requests from hanging
+app.use((req, res, next) => {
+  req.setTimeout(150000);
+  res.setTimeout(150000);
+  next();
+});
+
 // Middleware to set hostUrl
 app.use((req, res, next) => {
   const protocol = req.headers["x-forwarded-proto"] || "https";

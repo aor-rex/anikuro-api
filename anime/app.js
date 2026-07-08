@@ -42,6 +42,13 @@ startWebhookNotifier();
 
 const router = express.Router();
 
+// Global request/response timeout — prevents slow upstream requests from hanging
+router.use((req, res, next) => {
+  req.setTimeout(150000);
+  res.setTimeout(150000);
+  next();
+});
+
 router.get("/download-proxy", PlayController.proxyDownload);
 router.post("/webhook-check", express.json(), async (req, res) => {
   const expected = process.env.WEBHOOK_SECRET || "";

@@ -41,8 +41,8 @@ app.use(compression({ threshold: 1024 })); // Only compress responses > 1KB
 // ─── Fix #9: Request timeout ───
 // Prevents slow requests from holding connections indefinitely.
 app.use((req, res, next) => {
-  req.setTimeout(90000);
-  res.setTimeout(90000);
+  req.setTimeout(150000);
+  res.setTimeout(150000);
   next();
 });
 
